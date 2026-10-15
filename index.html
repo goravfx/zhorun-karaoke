@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Спой на страпонском — караоке группы «Жорун»</title>
+<meta name="description" content="Караоке на «Мандалупу»: слова подсвечиваются в такт, а в конце получается вертикальный ролик для VK Клипов.">
+<meta property="og:title" content="Спой на страпонском">
+<meta property="og:description" content="Караоке на «Мандалупу» группы «Жорун». Запиши ролик со своим голосом.">
+<meta property="og:image" content="https://goravfx.github.io/zhorun-karaoke/assets/og.jpg">
+<meta property="og:url" content="https://goravfx.github.io/zhorun-karaoke/">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0d0907">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d0907'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='40' text-anchor='middle' fill='%23d9b45e'%3E%D0%96%3C/text%3E%3C/svg%3E">
+<link rel="preload" href="assets/prata-cyrillic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/onest-cyrillic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/hero.jpg" as="image">
+<style>
+@font-face{font-family:Prata;font-style:normal;font-weight:400;font-display:swap;src:url(assets/prata-cyrillic-400-normal.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:Prata;font-style:normal;font-weight:400;font-display:swap;src:url(assets/prata-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Onest;font-style:normal;font-weight:400;font-display:swap;src:url(assets/onest-cyrillic-400-normal.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:Onest;font-style:normal;font-weight:400;font-display:swap;src:url(assets/onest-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Onest;font-style:normal;font-weight:500;font-display:swap;src:url(assets/onest-cyrillic-500-normal.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:Onest;font-style:normal;font-weight:500;font-display:swap;src:url(assets/onest-latin-500-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Onest;font-style:normal;font-weight:600;font-display:swap;src:url(assets/onest-cyrillic-600-normal.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:Onest;font-style:normal;font-weight:600;font-display:swap;src:url(assets/onest-latin-600-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  --black:#0d0907;      /* сценический задник */
+  --ivory:#f2e8d5;      /* мундир Жоруна */
+  --gold:#d9b45e;       /* золотое шитьё */
+  --gold-hi:#f3cf6b;
+  --cinnabar:#c2291f;   /* красные штаны */
+  --teal:#2e6b66;       /* занавес кочевой сцены */
+  --dust:#b39c7d;       /* пыльная дорога */
+  --line:rgba(242,232,213,.16);
+  --display:Prata,"Times New Roman",serif;
+  --ui:Onest,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --vh:100vh;
+}
+@supports (height:100dvh){:root{--vh:100dvh}}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--black);color:var(--ivory)}
+body{font:400 16px/1.5 var(--ui);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overflow:hidden;overscroll-behavior:none}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+:focus-visible{outline:2px solid var(--gold-hi);outline-offset:3px;border-radius:4px}
+[hidden]{display:none!important}
+
+.screen{position:fixed;inset:0;height:var(--vh);display:flex;flex-direction:column;opacity:0;visibility:hidden;transition:opacity .35s ease,visibility 0s linear .35s;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.screen.is-active{opacity:1;visibility:visible;transition:opacity .35s ease}
+.wrap{width:100%;max-width:480px;margin:0 auto;padding:0 20px}
+
+/* ---------- заставка */
+.intro{justify-content:flex-end;overflow:hidden}
+.intro-photo{position:absolute;inset:0;background:url(assets/hero.jpg) center 30%/cover no-repeat;transform-origin:50% 35%}
+.intro.is-active .intro-photo{animation:settle 2.4s cubic-bezier(.2,.7,.2,1) both}
+@keyframes settle{from{transform:scale(1.07);filter:brightness(.6)}to{transform:none;filter:none}}
+.intro-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,9,7,.55) 0%,rgba(13,9,7,0) 22%,rgba(13,9,7,0) 38%,rgba(13,9,7,.86) 62%,var(--black) 80%)}
+.brand{position:absolute;top:calc(env(safe-area-inset-top) + 18px);left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:4px;z-index:1}
+.frog{display:block;width:150px;height:16px;color:var(--gold)}
+.wordmark{font:400 26px/1 var(--display);color:var(--gold);letter-spacing:.02em}
+.intro-body{position:relative;z-index:1;padding-bottom:calc(env(safe-area-inset-bottom) + 22px)}
+.intro h1{font:400 clamp(38px,11vw,50px)/1.02 var(--display);letter-spacing:-.01em;margin-bottom:14px;text-wrap:balance}
+.lead{color:rgba(242,232,213,.82);font-size:16px;max-width:34ch;margin-bottom:22px}
+.fine{font-size:13px;line-height:1.45;color:var(--dust);margin-top:14px}
+.notice{font-size:14px;line-height:1.45;color:var(--ivory);background:rgba(46,107,102,.35);border:1px solid rgba(46,107,102,.9);border-radius:12px;padding:10px 12px;margin-top:14px}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:56px;border-radius:28px;font-weight:600;font-size:17px;text-decoration:none;transition:transform .12s ease,background-color .2s ease}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--cinnabar);color:var(--ivory)}
+.btn.primary:hover{background:#d0322a}
+.btn.primary .dot{width:12px;height:12px;border-radius:50%;background:var(--ivory)}
+.btn.ghost{min-height:48px;margin-top:8px;color:var(--ivory);font-weight:500;text-decoration:underline;text-decoration-color:rgba(217,180,94,.7);text-underline-offset:5px}
+.btn.outline{border:1px solid rgba(242,232,213,.35);color:var(--ivory);font-weight:500;margin-top:10px}
+.btn[disabled]{opacity:.5;pointer-events:none}
+
+/* ---------- настройка */
+.setup .wrap{padding-top:calc(env(safe-area-inset-top) + 14px);padding-bottom:calc(env(safe-area-inset-bottom) + 24px)}
+.topbar{display:flex;align-items:center;justify-content:space-between;min-height:44px;margin-bottom:10px}
+.back{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 4px;color:var(--dust);font-weight:500}
+.back svg{width:18px;height:18px}
+.setup h2{font:400 34px/1.05 var(--display);margin:6px 0 24px}
+.group{border:0;margin-bottom:22px}
+.group legend{font-weight:600;font-size:15px;margin-bottom:10px;color:var(--ivory)}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{position:relative;display:block;cursor:pointer}
+.card input{position:absolute;opacity:0;pointer-events:none}
+.card .face{display:flex;flex-direction:column;justify-content:flex-end;gap:4px;min-height:132px;padding:12px;border-radius:14px;border:1px solid var(--line);background:#1a1310 center/cover no-repeat;overflow:hidden;position:relative}
+.card .face::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,9,7,0) 20%,rgba(13,9,7,.92) 85%)}
+.card .face>*{position:relative}
+.card b{font-weight:600;font-size:16px}
+.card small{font-size:13px;line-height:1.35;color:rgba(242,232,213,.75)}
+.card input:checked+.face{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+.card input:focus-visible+.face{outline:2px solid var(--gold-hi);outline-offset:3px}
+.face.self{background-image:linear-gradient(135deg,#2a1d16,#120c09)}
+.face.self .mirror{position:absolute;top:14px;left:12px;width:40px;height:40px;color:var(--gold)}
+.face.band{background-image:url(assets/s7-ansambl.jpg)}
+
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
+.seg label{position:relative;cursor:pointer}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:flex;align-items:center;justify-content:center;min-height:46px;border-radius:10px;font-size:14px;font-weight:500;text-align:center;line-height:1.15;padding:0 4px;color:rgba(242,232,213,.8)}
+.seg input:checked+span{background:var(--teal);color:var(--ivory)}
+.seg input:focus-visible+span{outline:2px solid var(--gold-hi)}
+.hint{font-size:13.5px;line-height:1.45;color:var(--dust);margin-top:10px;min-height:2.9em}
+
+.switch{display:flex;align-items:flex-start;gap:14px;cursor:pointer;margin-bottom:26px}
+.switch input{position:absolute;opacity:0;pointer-events:none}
+.switch .track{flex:none;width:50px;height:30px;border-radius:15px;background:rgba(242,232,213,.18);position:relative;transition:background .2s;margin-top:2px}
+.switch .track::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--ivory);transition:transform .2s}
+.switch input:checked+.track{background:var(--teal)}
+.switch input:checked+.track::after{transform:translateX(20px)}
+.switch input:focus-visible+.track{outline:2px solid var(--gold-hi);outline-offset:3px}
+.switch input:disabled+.track{opacity:.4}
+.switch b{display:block;font-weight:600}
+.switch small{display:block;font-size:13.5px;color:var(--dust);line-height:1.4}
+.error{margin-top:14px;font-size:14px;line-height:1.45;color:var(--ivory);background:rgba(194,41,31,.22);border:1px solid rgba(194,41,31,.7);border-radius:12px;padding:12px}
+.error button{margin-top:10px;text-decoration:underline;text-underline-offset:4px;font-weight:600}
+
+/* ---------- сцена */
+.stage{background:#000;align-items:center;justify-content:center;overflow:hidden}
+#cv{display:block;height:min(var(--vh),calc(100vw*16/9));width:auto;max-width:100vw;aspect-ratio:9/16;background:#000}
+.stage-top{position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;pointer-events:none}
+.stage-top>*{pointer-events:auto}
+.pill{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 16px;border-radius:20px;background:rgba(13,9,7,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-weight:500;font-size:15px;color:var(--ivory)}
+.pill svg{width:18px;height:18px}
+.pill.stop{background:var(--cinnabar)}
+.rec{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border-radius:20px;background:rgba(13,9,7,.62);font-variant-numeric:tabular-nums;font-weight:500}
+.rec i{width:10px;height:10px;border-radius:50%;background:var(--cinnabar);animation:blink 1.2s steps(2,start) infinite}
+@keyframes blink{to{visibility:hidden}}
+.stage-bottom{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 18px);display:flex;flex-direction:column;align-items:center;gap:10px}
+.rec-btn{width:84px;height:84px;border-radius:50%;border:4px solid var(--ivory);display:grid;place-items:center;background:rgba(13,9,7,.25)}
+.rec-btn span{width:62px;height:62px;border-radius:50%;background:var(--cinnabar);transition:transform .15s}
+.rec-btn:active span{transform:scale(.9)}
+.rec-btn.play span{border-radius:0;width:0;height:0;background:none;border-style:solid;border-width:18px 0 18px 30px;border-color:transparent transparent transparent var(--ivory);margin-left:8px}
+.rec-label{font-weight:600;font-size:15px;text-shadow:0 1px 8px rgba(0,0,0,.8)}
+.meter{gap:8px;font-size:13px;padding:0 12px;color:rgba(242,232,213,.85)}
+.meter .bar{width:64px;height:6px;border-radius:3px;background:rgba(242,232,213,.22);overflow:hidden}
+.meter .bar i{display:block;height:100%;width:0;background:var(--gold-hi);transition:width .08s linear}
+.toast{position:absolute;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom) + 130px);margin:0 auto;max-width:440px;padding:12px 14px;border-radius:12px;background:rgba(13,9,7,.85);font-size:14px;line-height:1.45;text-align:center}
+.busy{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.6);font-weight:500}
+
+/* ---------- результат */
+.result .wrap{padding-top:calc(env(safe-area-inset-top) + 14px);padding-bottom:calc(env(safe-area-inset-bottom) + 24px)}
+.result h2{font:400 34px/1.05 var(--display);margin:6px 0 16px}
+.result video{display:block;height:min(calc(var(--vh) * .52),calc((100vw - 40px) * 16 / 9));width:auto;max-width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;border-radius:10px;margin:0 auto 18px}
+.tag{color:var(--gold-hi);font-weight:500}
+
+@media (prefers-reduced-motion:reduce){
+  .intro.is-active .intro-photo{animation:none}
+  .screen{transition:none}
+}
+@media (orientation:landscape) and (max-height:520px){
+  .rotate{display:grid!important}
+}
+.rotate{display:none;position:fixed;inset:0;z-index:50;place-items:center;background:var(--black);text-align:center;padding:24px;font:400 24px/1.3 var(--display)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="frog" viewBox="0 0 240 24">
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+      <path d="M30 12H83M157 12H210"/>
+      <ellipse cx="100" cy="12" rx="16" ry="6.5"/>
+      <ellipse cx="140" cy="12" rx="16" ry="6.5"/>
+      <circle cx="46" cy="12" r="3"/><circle cx="194" cy="12" r="3"/>
+    </g>
+    <g fill="currentColor"><circle cx="120" cy="12" r="4.2"/><ellipse cx="22" cy="12" rx="8" ry="4"/><ellipse cx="218" cy="12" rx="8" ry="4"/></g>
+  </symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="flip" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><path d="M9.5 13a2.5 2.5 0 0 1 4.3-1.7M14.5 13a2.5 2.5 0 0 1-4.3 1.7"/><path d="M14 10.6V11.4h-.8M10 15.4v-.8h.8"/></g></symbol>
+</svg>
+
+<main>
+  <!-- Заставка -->
+  <section class="screen intro is-active" id="intro" aria-labelledby="intro-title">
+    <div class="intro-photo" role="img" aria-label="Жорун поёт в старинный микрофон"></div>
+    <div class="brand"><svg class="frog" aria-hidden="true"><use href="#frog"/></svg><span class="wordmark">Жорун</span></div>
+    <div class="intro-body wrap">
+      <h1 id="intro-title">Спой на&nbsp;страпонском</h1>
+      <p class="lead">Караоке на «Мандалупу». Слова загораются в&nbsp;такт, а&nbsp;в&nbsp;конце у&nbsp;тебя готовый вертикальный ролик для VK&nbsp;Клипов.</p>
+      <button class="btn primary" id="go-record" type="button"><span class="dot" aria-hidden="true"></span>Записать ролик</button>
+      <button class="btn ghost" id="go-rehearse" type="button">Сначала порепетировать</button>
+      <p class="notice" id="inapp-notice" hidden>Ты открыл страницу внутри приложения. Если камера не включится, открой её в&nbsp;Safari или Chrome: нажми ⋯ вверху и&nbsp;выбери «Открыть в&nbsp;браузере».</p>
+      <p class="fine">Ролик собирается прямо в&nbsp;телефоне и&nbsp;никуда не&nbsp;отправляется.</p>
+    </div>
+  </section>
+
+  <!-- Настройка -->
+  <section class="screen setup" id="setup" aria-labelledby="setup-title">
+    <div class="wrap">
+      <div class="topbar"><button class="back" type="button" data-go="intro"><svg aria-hidden="true"><use href="#chev"/></svg>Назад</button></div>
+      <h2 id="setup-title">Перед записью</h2>
+
+      <fieldset class="group">
+        <legend>Кто в кадре</legend>
+        <div class="cards">
+          <label class="card"><input type="radio" name="cam" value="on" checked>
+            <span class="face self"><svg class="mirror" viewBox="0 0 40 40" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5"><rect x="9" y="3" width="22" height="34" rx="4"/><circle cx="20" cy="17" r="5"/><path d="M12.5 31c1.6-4 4.2-6 7.5-6s5.9 2 7.5 6"/></g></svg>
+              <b>Ты</b><small>Снимает фронтальная камера</small></span></label>
+          <label class="card"><input type="radio" name="cam" value="off">
+            <span class="face band"><b>Ансамбль</b><small>Кадры группы, ты&nbsp;за&nbsp;кадром</small></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>Наушники</legend>
+        <div class="seg" role="radiogroup">
+          <label><input type="radio" name="hp" value="wired" checked><span>Проводные</span></label>
+          <label><input type="radio" name="hp" value="bt"><span>Блютус</span></label>
+          <label><input type="radio" name="hp" value="none"><span>Без наушников</span></label>
+        </div>
+        <p class="hint" id="hp-hint"></p>
+      </fieldset>
+
+      <label class="switch"><input type="checkbox" id="guide" checked><span class="track" aria-hidden="true"></span>
+        <span><b>Подпевка Жоруна</b><small id="guide-hint">Жорун тихо поёт в&nbsp;наушниках. В&nbsp;ролик его голос не&nbsp;попадёт.</small></span></label>
+
+      <button class="btn primary" id="setup-go" type="button">Включить камеру и микрофон</button>
+      <div class="error" id="setup-error" role="alert" hidden></div>
+    </div>
+  </section>
+
+  <!-- Сцена -->
+  <section class="screen stage" id="stage" aria-label="Запись">
+    <canvas id="cv" width="720" height="1280" aria-label="Кадр с текстом песни"></canvas>
+    <div class="stage-top">
+      <button class="pill" id="stage-back" type="button"><svg aria-hidden="true"><use href="#chev"/></svg>Назад</button>
+      <button class="pill stop" id="stage-stop" type="button" hidden>Стоп</button>
+      <div class="meter pill" id="meter" hidden><span>Микрофон</span><span class="bar"><i id="meter-i"></i></span></div>
+      <span class="rec" id="rec-ind" hidden><i aria-hidden="true"></i><span id="rec-time">0:00</span></span>
+      <button class="pill" id="flip" type="button" hidden><svg aria-hidden="true"><use href="#flip"/></svg>Камера</button>
+    </div>
+    <div class="stage-bottom" id="stage-controls">
+      <button class="rec-btn" id="rec-start" type="button" aria-label="Начать запись"><span></span></button>
+      <p class="rec-label" id="rec-label">Начать запись</p>
+    </div>
+    <p class="toast" id="toast" role="status" hidden></p>
+    <div class="busy" id="busy" hidden>Собираю ролик…</div>
+  </section>
+
+  <!-- Результат -->
+  <section class="screen result" id="result" aria-labelledby="result-title">
+    <div class="wrap">
+      <div class="topbar"><button class="back" type="button" id="result-home"><svg aria-hidden="true"><use href="#chev"/></svg>В начало</button></div>
+      <h2 id="result-title">Готово</h2>
+      <video id="result-video" playsinline controls loop></video>
+      <button class="btn primary" id="save" type="button">Сохранить ролик</button>
+      <a class="btn outline" id="download" download="zhorun-mandalupa.mp4">Скачать файл</a>
+      <button class="btn ghost" id="retake" type="button">Перепеть</button>
+      <p class="fine">Выложи ролик в&nbsp;VK&nbsp;Клипы с&nbsp;хэштегом <span class="tag">#спойнастрапонском</span> и&nbsp;отметь группу «Жорун».</p>
+      <p class="fine" id="result-note" hidden></p>
+    </div>
+  </section>
+</main>
+
+<div class="rotate" aria-hidden="true">Поверни телефон вертикально</div>
+<video id="cam" playsinline muted autoplay style="position:fixed;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1"></video>
+
+<script src="song-mandalupa.js"></script>
+<script>
+"use strict";
+/* =========================================================
+   Спой на страпонском — караоке группы «Жорун»
+   Всё работает в браузере: камера, микрофон, сведение и запись.
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const W = 720, H = 1280;
+const PARAMS = new URLSearchParams(location.search);
+
+/* ---------------- состояние */
+const S = {
+  mode: "record",          // record | rehearse
+  cam: true,
+  hp: "wired",             // wired | bt | none
+  guide: true,
+  facing: "user",
+  camStream: null,
+  micStream: null,
+  phase: "idle",           // idle | preview | countdown | live | done
+  songStart: 0,
+  lat: {out: 0.04, rec: 0.07},
+  recorder: null,
+  chunks: [],
+  mime: "",
+  blob: null,
+  blobUrl: "",
+  wake: null,
+  lineAnim: {idx: -1, at: 0},
+  stopRequested: false,
+};
+
+/* ---------------- экраны */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("is-active", s.id === id));
+  const el = document.getElementById(id);
+  const f = el.querySelector("h1,h2,button");
+  if (f && id !== "stage") setTimeout(() => f.focus({preventScroll: true}), 60);
+}
+document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => show(b.dataset.go)));
+
+/* ---------------- ресурсы */
+const AUDIO_SRC = {minus: "assets/mandalupa-minus.mp3", guide: "assets/mandalupa-guide.mp3"};
+const audioBytes = {};
+for (const [k, url] of Object.entries(AUDIO_SRC)) {
+  audioBytes[k] = fetch(url).then(r => { if (!r.ok) throw new Error(url); return r.arrayBuffer(); });
+}
+const SLIDES = [
+  {src: "assets/hero.jpg",            t0: -9,   t1: 18,   fx: [0.50, 0.40, 1.00, 1.07]},
+  {src: "assets/s2-shmyzdya.jpg",     t0: 18,   t1: 34.3, fx: [0.50, 0.42, 1.08, 1.00]},
+  {src: "assets/s3-lygar.jpg",        t0: 34.3, t1: 43,   fx: [0.50, 0.45, 1.00, 1.06]},
+  {src: "assets/s4-drotsyk.jpg",      t0: 43,   t1: 51.6, fx: [0.50, 0.40, 1.06, 1.00]},
+  {src: "assets/s5-lokhman.jpg",      t0: 51.6, t1: 69.5, fx: [0.50, 0.38, 1.00, 1.07]},
+  {src: "assets/s6-zhorun-dvor.jpg",  t0: 69.5, t1: 87.2, fx: [0.50, 0.42, 1.07, 1.00]},
+  {src: "assets/s7-ansambl.jpg",      t0: 87.2, t1: 200,  fx: [0.50, 0.45, 1.00, 1.08]},
+];
+SLIDES.forEach(s => { s.img = new Image(); s.img.decoding = "async"; s.img.src = s.src; s.ready = s.img.decode().then(() => true, () => false); });
+
+const fontsReady = Promise.all([
+  document.fonts.load('60px Prata', "Мандалупа Жорун"),
+  document.fonts.load('500 24px Onest', "Ссылка в группе"),
+  document.fonts.load('600 24px Onest', "Ссылка"),
+]).catch(() => {});
+
+/* ---------------- текст песни: раскладка и тайминг */
+const lyricFont = size => `${size}px Prata, "Times New Roman", serif`;
+const g = $("#cv").getContext("2d", {alpha: false});
+let LYR = 56;
+let LINES = [];
+
+function prepareLines(){
+  g.font = lyricFont(60);
+  let widest = 0;
+  for (const L of SONG.lines) widest = Math.max(widest, g.measureText(L.words.map(w => w.w).join(" ")).width);
+  LYR = Math.max(36, Math.min(58, Math.floor(60 * 636 / widest)));
+  LINES = SONG.lines.map(L => {
+    const text = L.words.map(w => w.w).join(" ");
+    const st = [], en = [];
+    L.words.forEach((w, wi) => {
+      let li = 0;
+      for (const ch of w.w) {
+        if (/\p{L}/u.test(ch)) {
+          const s = w.l[li], e = li + 1 < w.l.length ? w.l[li + 1] : w.t1;
+          st.push(s); en.push(Math.max(s + 0.02, e)); li++;
+        } else {
+          const p = st.length ? en[en.length - 1] : w.l[0];
+          st.push(p); en.push(p);
+        }
+      }
+      if (wi < L.words.length - 1) {
+        const nxt = L.words[wi + 1].l[0];
+        const s0 = nxt - w.t1 > 0.6 ? nxt - 0.25 : w.t1;   // на длинной паузе пробел ждёт следующее слово
+        st.push(s0); en.push(Math.max(s0, nxt));
+      }
+    });
+    g.font = lyricFont(LYR);
+    const xs = [0];
+    for (let i = 1; i <= text.length; i++) xs.push(g.measureText(text.slice(0, i)).width);
+    return {t0: L.t0, t1: L.t1, text, st, en, xs, w: xs[xs.length - 1]};
+  });
+}
+
+function pickLine(t){
+  // индекс текущей строки: становится текущей за 0,5 с до первого слова
+  let c = 0;
+  for (let i = 0; i < LINES.length; i++) if (t >= LINES[i].t0 - 0.5) c = i;
+  if (c > 0 && t < LINES[c].t0 - 0.12 && t < LINES[c - 1].t1) c -= 1;
+  const L = LINES[c], N = LINES[c + 1];
+  if (t > L.t1 + 0.6) {
+    if (!N) return {mode: "outro"};
+    if (N.t0 - t > 3.2) return {mode: "break", next: c + 1, from: L.t1};
+    return {mode: "lines", cur: c + 1};
+  }
+  return {mode: "lines", cur: c};
+}
+
+/* ---------------- орнамент: шнур-бранденбур с мундира */
+function frog(cx, cy, scale, color, alpha = 1){
+  g.save();
+  g.translate(cx - 120 * scale, cy - 12 * scale);
+  g.scale(scale, scale);
+  g.globalAlpha *= alpha;
+  g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 1.6; g.lineCap = "round";
+  g.beginPath(); g.moveTo(30, 12); g.lineTo(83, 12); g.moveTo(157, 12); g.lineTo(210, 12); g.stroke();
+  g.beginPath(); g.ellipse(100, 12, 16, 6.5, 0, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.ellipse(140, 12, 16, 6.5, 0, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(46, 12, 3, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(194, 12, 3, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(120, 12, 4.2, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.ellipse(22, 12, 8, 4, 0, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.ellipse(218, 12, 8, 4, 0, 0, Math.PI * 2); g.fill();
+  g.restore();
+}
+
+/* ---------------- плёнка: тон, градиенты и зерно рисуются один раз */
+function makeLayer(){ const c = document.createElement("canvas"); c.width = W; c.height = H; return c; }
+const overlayLayer = (() => {
+  const c = makeLayer(), x = c.getContext("2d");
+  x.fillStyle = "rgba(255,150,80,0.06)"; x.fillRect(0, 0, W, H);
+  let gr = x.createLinearGradient(0, 0, 0, 300);
+  gr.addColorStop(0, "rgba(0,0,0,.62)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+  x.fillStyle = gr; x.fillRect(0, 0, W, 300);
+  gr = x.createLinearGradient(0, 760, 0, H);
+  gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(0.55, "rgba(0,0,0,.58)"); gr.addColorStop(1, "rgba(0,0,0,.82)");
+  x.fillStyle = gr; x.fillRect(0, 760, W, H - 760);
+  gr = x.createRadialGradient(W / 2, H * 0.42, 260, W / 2, H * 0.45, 860);
+  gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,.5)");
+  x.fillStyle = gr; x.fillRect(0, 0, W, H);
+  return c;
+})();
+const grainLayers = [0, 1, 2].map(() => {
+  const c = document.createElement("canvas"); c.width = W / 2; c.height = H / 2;
+  const x = c.getContext("2d"), d = x.createImageData(c.width, c.height);
+  for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() < 0.5 ? 0 : 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = Math.random() * 20 | 0; }
+  x.putImageData(d, 0, 0); return c;
+});
+let grainFrame = 0;
+
+let goldGrad = null;
+function goldFor(y, size){
+  const gr = g.createLinearGradient(0, y - size * 0.82, 0, y + size * 0.12);
+  gr.addColorStop(0, "#fff0bf"); gr.addColorStop(0.45, "#f3cf6b"); gr.addColorStop(1, "#b98a30");
+  return gr;
+}
+
+/* ---------------- кадр */
+const camVideo = $("#cam");
+function coverDraw(src, sw, sh, mirror, cxr = 0.5, cyr = 0.5, zoom = 1){
+  const s = Math.max(W / sw, H / sh) * zoom;
+  const dw = sw * s, dh = sh * s;
+  const dx = (W - dw) * cxr, dy = (H - dh) * cyr;
+  g.save();
+  if (mirror) { g.translate(W, 0); g.scale(-1, 1); }
+  g.drawImage(src, dx, dy, dw, dh);
+  g.restore();
+}
+
+function drawBackground(t){
+  const camOk = S.cam && S.mode === "record" && camVideo.readyState >= 2 && camVideo.videoWidth > 0;
+  if (camOk) {
+    if ("filter" in g) g.filter = "contrast(1.06) saturate(1.08) brightness(1.02)";
+    coverDraw(camVideo, camVideo.videoWidth, camVideo.videoHeight, S.facing === "user");
+    if ("filter" in g) g.filter = "none";
+    return;
+  }
+  // кадры ансамбля с медленным наездом и наплывами
+  g.fillStyle = "#0d0907"; g.fillRect(0, 0, W, H);
+  const tt = Math.max(t, -9);
+  for (let i = 0; i < SLIDES.length; i++) {
+    const s = SLIDES[i];
+    const fade = 0.9;
+    if (tt < s.t0 - fade || tt > s.t1 + fade) continue;
+    let a = 1;
+    if (i > 0 && tt < s.t0 + fade) a = Math.min(1, (tt - (s.t0 - fade)) / (2 * fade));
+    if (!s.img.complete || !s.img.naturalWidth) continue;
+    const p = Math.min(1, Math.max(0, (tt - s.t0) / Math.max(1, (Math.min(s.t1, SONG.duration + 2) - s.t0))));
+    const z = s.fx[2] + (s.fx[3] - s.fx[2]) * p;
+    g.globalAlpha = a;
+    coverDraw(s.img, s.img.naturalWidth, s.img.naturalHeight, false, s.fx[0], s.fx[1], z);
+    g.globalAlpha = 1;
+  }
+}
+
+function drawGrade(){
+  g.drawImage(overlayLayer, 0, 0);
+  g.drawImage(grainLayers[(grainFrame++ >> 1) % 3], 0, 0, W, H);
+}
+
+function drawHeader(t){
+  const a = t < 0 ? 1 : (t < 6 ? 1 - 0.25 * (t / 6) : 0.75);
+  g.save();
+  g.globalAlpha = a;
+  g.shadowColor = "rgba(0,0,0,.7)"; g.shadowBlur = 10;
+  frog(W / 2, 64, 0.9, "#d9b45e");
+  g.textAlign = "center"; g.textBaseline = "alphabetic";
+  g.fillStyle = "#e3c06a"; g.font = lyricFont(44); g.fillText("Жорун", W / 2, 128);
+  g.fillStyle = "rgba(242,232,213,.92)"; g.font = lyricFont(25); g.fillText("Мандалупа", W / 2, 166);
+  g.restore();
+}
+
+function lineFill(L, t){
+  const n = L.text.length;
+  let fx = 0;
+  for (let k = 0; k < n; k++) {
+    if (t >= L.en[k]) { fx = L.xs[k + 1]; continue; }
+    if (t > L.st[k]) fx = L.xs[k] + (t - L.st[k]) / Math.max(0.001, L.en[k] - L.st[k]) * (L.xs[k + 1] - L.xs[k]);
+    break;
+  }
+  return fx;
+}
+
+function drawLine(L, t, y, scale, alpha, filled){
+  if (!L) return;
+  const size = LYR;
+  g.save();
+  g.translate(W / 2, y); g.scale(scale, scale);
+  const x0 = -L.w / 2;
+  g.font = lyricFont(size); g.textAlign = "left"; g.textBaseline = "alphabetic";
+  g.globalAlpha = alpha;
+  g.shadowColor = "rgba(0,0,0,.85)"; g.shadowBlur = 16; g.shadowOffsetY = 2;
+  g.fillStyle = "#f2e8d5";
+  g.fillText(L.text, x0, 0);
+  if (filled) {
+    const fx = lineFill(L, t);
+    if (fx > 0.5) {
+      g.beginPath(); g.rect(x0 - 6, -size * 1.15, fx + 6, size * 1.6); g.clip();
+      g.shadowColor = "rgba(243,207,107,.55)"; g.shadowBlur = 22; g.shadowOffsetY = 0;
+      g.fillStyle = goldFor(0, size);
+      g.fillText(L.text, x0, 0);
+    }
+  }
+  g.restore();
+}
+
+const Y_CUR = 1078, Y_NEXT = 1156, NEXT_SCALE = 0.62;
+function easeOut(p){ return 1 - Math.pow(1 - p, 3); }
+
+function drawLyrics(t, tau){
+  const pick = pickLine(t);
+  if (pick.mode !== "lines") {
+    S.lineAnim = {idx: -1, prev: -1, at: tau};
+    return pick.mode === "outro" ? drawOutro(t) : drawBreak(t, pick);
+  }
+  const c = pick.cur;
+  if (S.lineAnim.idx !== c) { S.lineAnim.prev = S.lineAnim.idx; S.lineAnim.idx = c; S.lineAnim.at = tau; }
+  let p = Math.min(1, (tau - S.lineAnim.at) / 0.32);
+  if (S.lineAnim.prev === -1 || S.lineAnim.prev === undefined || S.lineAnim.prev !== c - 1) p = 1;
+  const e = easeOut(p);
+  const L = LINES[c], N = LINES[c + 1], P = LINES[c - 1];
+  if (p < 1 && P) drawLine(P, t, Y_CUR - 86 * e, 1, 1 - e, true);
+  drawLine(L, t, Y_NEXT + (Y_CUR - Y_NEXT) * e, NEXT_SCALE + (1 - NEXT_SCALE) * e, 0.55 + 0.45 * e, true);
+  if (N && S.phase !== "preview") drawLine(N, t, Y_NEXT + 30 * (1 - e), NEXT_SCALE, 0.55 * e, false);
+  // три точки отсчёта перед строкой после паузы
+  const gapBefore = c === 0 ? 99 : L.t0 - LINES[c - 1].t1;
+  if (c > 0 && t < L.t0 && gapBefore > 1.6) {
+    const b = SONG.beat;
+    g.save(); g.fillStyle = "#f3cf6b"; g.shadowColor = "rgba(0,0,0,.6)"; g.shadowBlur = 8;
+    for (let k = 0; k < 3; k++) {
+      const vanish = L.t0 - (3 - k) * b;
+      if (t < vanish) { g.beginPath(); g.arc(W / 2 - 34 + k * 34, Y_CUR - LYR - 26, 7, 0, Math.PI * 2); g.fill(); }
+    }
+    g.restore();
+  }
+}
+
+function drawBreak(t, pick){
+  const N = LINES[pick.next];
+  const span = N.t0 - pick.from, p = Math.min(1, Math.max(0, (t - pick.from) / span));
+  g.save();
+  g.textAlign = "center";
+  g.shadowColor = "rgba(0,0,0,.8)"; g.shadowBlur = 14;
+  frog(W / 2, Y_CUR - 92, 1.1, "#d9b45e", 0.95);
+  g.fillStyle = "#f2e8d5"; g.font = lyricFont(46); g.fillText("Проигрыш", W / 2, Y_CUR - 10);
+  g.shadowBlur = 0;
+  const bw = 300, bx = W / 2 - bw / 2, by = Y_CUR + 30;
+  g.fillStyle = "rgba(242,232,213,.22)"; g.fillRect(bx, by, bw, 3);
+  g.fillStyle = "#f3cf6b"; g.fillRect(bx, by, bw * p, 3);
+  g.restore();
+  if (N.t0 - t < 5) drawLine(N, t, Y_NEXT + 22, NEXT_SCALE, Math.min(0.55, (5 - (N.t0 - t)) / 2), false);
+}
+
+function drawOutro(t){
+  const a = Math.min(1, Math.max(0, (t - SONG.outro) / 0.8));
+  if (a <= 0) return;
+  g.save();
+  g.globalAlpha = a;
+  g.textAlign = "center";
+  g.shadowColor = "rgba(0,0,0,.85)"; g.shadowBlur = 16;
+  frog(W / 2, 958, 1.2, "#d9b45e");
+  g.fillStyle = goldFor(1046, 58); g.font = lyricFont(58); g.fillText("Спой на страпонском", W / 2, 1046);
+  g.fillStyle = "#f2e8d5"; g.font = '500 25px Onest, system-ui, sans-serif';
+  g.fillText("Ссылка — в группе «Жорун» во ВКонтакте", W / 2, 1102);
+  g.fillStyle = "#f3cf6b"; g.font = '500 23px Onest, system-ui, sans-serif';
+  g.fillText("#спойнастрапонском", W / 2, 1146);
+  g.restore();
+}
+
+function drawCountdown(t){
+  const fb = SONG.firstBeat, b = SONG.beat;
+  const marks = [fb - 3 * b, fb - 2 * b, fb - b];  // 3, 2, 1 — вступать на следующую долю
+  for (let k = 0; k < 3; k++) {
+    const m = marks[k], d = t - (m - 0.02);
+    if (d >= 0 && d < b) {
+      const p = d / b;
+      g.save(); g.textAlign = "center"; g.globalAlpha = 1 - p;
+      g.shadowColor = "rgba(0,0,0,.8)"; g.shadowBlur = 20;
+      g.fillStyle = goldFor(700, 230); g.font = lyricFont(230);
+      const sc = 1 + 0.12 * p;
+      g.translate(W / 2, 700); g.scale(sc, sc); g.fillText(String(3 - k), 0, 0);
+      g.restore();
+    }
+  }
+}
+
+function drawProgress(t){
+  const p = Math.min(1, Math.max(0, t / SONG.duration));
+  g.fillStyle = "rgba(242,232,213,.18)"; g.fillRect(60, H - 34, W - 120, 2);
+  g.fillStyle = "#d9b45e"; g.fillRect(60, H - 34, (W - 120) * p, 2);
+}
+
+function render(t, tau){
+  drawBackground(t);
+  drawGrade();
+  drawHeader(t);
+  drawLyrics(t, tau);
+  if (t > -1.5 && t < SONG.firstBeat) drawCountdown(t);
+  if (t >= 0) drawProgress(t);
+}
+
+/* ---------------- звук */
+const AE = {
+  ctx: null, buf: {}, nodes: {}, sources: [],
+  async ensure(){
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AC({latencyHint: "interactive"});
+    }
+    if (this.ctx.state !== "running") { try { await this.ctx.resume(); } catch (e) {} }
+  },
+  async decode(){
+    for (const k of Object.keys(AUDIO_SRC)) {
+      if (this.buf[k]) continue;
+      const ab = await audioBytes[k];
+      this.buf[k] = await new Promise((res, rej) => this.ctx.decodeAudioData(ab.slice(0), res, rej));
+    }
+  },
+  impulse(){
+    const c = this.ctx, sr = c.sampleRate, n = Math.floor(sr * 1.9);
+    const b = c.createBuffer(2, n, sr);
+    for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.4); }
+    return b;
+  },
+  build(mic){
+    const c = this.ctx, N = this.nodes;
+    Object.values(N).forEach(n => { try { n.disconnect(); } catch (e) {} });
+    this.nodes = {};
+    const n = this.nodes;
+    n.monitor = c.createGain(); n.monitor.gain.value = 1; n.monitor.connect(c.destination);
+    n.inst = c.createGain(); n.inst.gain.value = 0.9; n.inst.connect(n.monitor);
+    n.guide = c.createGain(); n.guide.gain.value = S.guide ? 0.42 : 0; n.guide.connect(n.monitor);
+    if (!mic) return null;
+    // запись: минус с задержкой на латентность + голос с компрессией и залом
+    n.bus = c.createGain(); n.bus.gain.value = 1;
+    n.limit = c.createDynamicsCompressor();
+    n.limit.threshold.value = -3; n.limit.knee.value = 0; n.limit.ratio.value = 20; n.limit.attack.value = 0.002; n.limit.release.value = 0.12;
+    n.dest = c.createMediaStreamDestination();
+    n.bus.connect(n.limit); n.limit.connect(n.dest);
+    n.delay = c.createDelay(1.0); n.delay.delayTime.value = S.lat.rec;
+    n.instRec = c.createGain(); n.instRec.gain.value = 0.82;
+    n.inst.connect(n.delay); n.delay.connect(n.instRec); n.instRec.connect(n.bus);
+    n.mic = c.createMediaStreamSource(mic);
+    n.hp = c.createBiquadFilter(); n.hp.type = "highpass"; n.hp.frequency.value = 90;
+    n.comp = c.createDynamicsCompressor();
+    n.comp.threshold.value = -24; n.comp.knee.value = 8; n.comp.ratio.value = 3.5; n.comp.attack.value = 0.004; n.comp.release.value = 0.16;
+    n.voice = c.createGain(); n.voice.gain.value = S.hp === "none" ? 1.2 : 1.55;
+    n.pre = c.createDelay(0.1); n.pre.delayTime.value = 0.022;
+    n.verb = c.createConvolver(); n.verb.buffer = this.impulse();
+    n.wet = c.createGain(); n.wet.gain.value = 0.2;
+    n.meter = c.createAnalyser(); n.meter.fftSize = 1024;
+    n.mic.connect(n.hp); n.hp.connect(n.comp); n.comp.connect(n.voice);
+    n.voice.connect(n.bus); n.voice.connect(n.pre); n.pre.connect(n.verb); n.verb.connect(n.wet); n.wet.connect(n.bus);
+    n.hp.connect(n.meter);
+    return n.dest.stream;
+  },
+  play(at){
+    this.stop();
+    const c = this.ctx;
+    const a = c.createBufferSource(); a.buffer = this.buf.minus; a.connect(this.nodes.inst); a.start(at);
+    const v = c.createBufferSource(); v.buffer = this.buf.guide; v.connect(this.nodes.guide); v.start(at);
+    this.sources = [a, v];
+    // отсчёт: щелчки только в наушники, в ролик не идут
+    const fb = SONG.firstBeat, b = SONG.beat;
+    [fb - 3 * b, fb - 2 * b, fb - b].forEach((m, i) => {
+      const o = c.createOscillator(), gg = c.createGain();
+      o.type = "triangle"; o.frequency.value = i === 2 ? 1320 : 880;
+      gg.gain.setValueAtTime(0.0001, at + m); gg.gain.exponentialRampToValueAtTime(0.25, at + m + 0.005); gg.gain.exponentialRampToValueAtTime(0.0001, at + m + 0.09);
+      o.connect(gg); gg.connect(this.nodes.monitor); o.start(at + m); o.stop(at + m + 0.12);
+      this.sources.push(o);
+    });
+  },
+  stop(){ this.sources.forEach(s => { try { s.stop(); } catch (e) {} try { s.disconnect(); } catch (e) {} }); this.sources = []; },
+  level(){
+    const m = this.nodes.meter; if (!m) return 0;
+    const d = new Float32Array(m.fftSize); m.getFloatTimeDomainData(d);
+    let s = 0; for (let i = 0; i < d.length; i++) s += d[i] * d[i];
+    return Math.sqrt(s / d.length);
+  },
+};
+
+function measureLatency(){
+  const c = AE.ctx;
+  let out = (c.outputLatency || 0) + (c.baseLatency || 0);
+  if (!(out > 0.001)) out = 0.035;
+  if (S.hp === "bt" && out < 0.12) out += 0.19;
+  S.lat = {out, rec: out + 0.03};
+}
+
+/* ---------------- настройка */
+const HP_HINT = {
+  wired: "Лучший вариант: голос чистый и попадает точно в\u00a0такт.",
+  bt: "Блютус-наушники немного запаздывают. Мы сдвинем голос, чтобы он попал в\u00a0такт.",
+  none: "Музыка пойдёт из динамика, и микрофон её тоже услышит. Пой погромче и держи телефон чуть подальше.",
+};
+function syncSetup(){
+  S.cam = document.querySelector('input[name="cam"]:checked').value === "on";
+  S.hp = document.querySelector('input[name="hp"]:checked').value;
+  $("#hp-hint").textContent = HP_HINT[S.hp];
+  const gd = $("#guide");
+  if (S.hp === "none") { gd.checked = false; gd.disabled = true; $("#guide-hint").textContent = "Подпевка работает только в наушниках: из динамика она попадёт в ролик."; }
+  else { gd.disabled = false; $("#guide-hint").textContent = "Жорун тихо поёт в наушниках. В ролик его голос не попадёт."; }
+  S.guide = gd.checked;
+  $("#setup-go").textContent = S.cam ? "Включить камеру и микрофон" : "Включить микрофон";
+}
+document.querySelectorAll('#setup input').forEach(i => i.addEventListener("change", syncSetup));
+syncSetup();
+
+/* ---------------- камера и микрофон */
+function stopStreams(){
+  [S.camStream, S.micStream].forEach(st => st && st.getTracks().forEach(tr => tr.stop()));
+  S.camStream = S.micStream = null;
+  camVideo.srcObject = null;
+}
+
+async function openCamera(){
+  if (S.camStream) S.camStream.getTracks().forEach(t => t.stop());
+  S.camStream = await navigator.mediaDevices.getUserMedia({
+    video: {facingMode: S.facing, width: {ideal: 1280}, height: {ideal: 720}, frameRate: {ideal: 30}},
+    audio: false,
+  });
+  camVideo.srcObject = S.camStream;
+  try { await camVideo.play(); } catch (e) {}
+}
+
+async function openMic(){
+  if (S.micStream) return;
+  const ec = S.hp === "none";
+  S.micStream = await navigator.mediaDevices.getUserMedia({
+    audio: {echoCancellation: ec, noiseSuppression: ec, autoGainControl: false, channelCount: 1},
+    video: false,
+  });
+}
+
+function mediaError(e){
+  const name = e && e.name;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+    return "Этот браузер не даёт доступ к камере и микрофону. Открой страницу в Safari или Chrome.";
+  if (name === "NotAllowedError" || name === "SecurityError")
+    return "Нет разрешения на камеру или микрофон. Разреши доступ в настройках браузера для этого сайта и попробуй ещё раз. Если ты внутри ВКонтакте, открой страницу в Safari или Chrome: ⋯ → «Открыть в браузере».";
+  if (name === "NotFoundError" || name === "OverconstrainedError")
+    return "Не нашли камеру или микрофон на этом устройстве.";
+  if (name === "NotReadableError")
+    return "Камера или микрофон заняты другим приложением. Закрой его и попробуй снова.";
+  return "Не получилось включить камеру и микрофон. Открой страницу в Safari или Chrome и попробуй снова.";
+}
+
+$("#setup-go").addEventListener("click", async () => {
+  syncSetup();
+  const err = $("#setup-error"); err.hidden = true;
+  const btn = $("#setup-go"); btn.disabled = true;
+  try {
+    if ("audioSession" in navigator) { try { navigator.audioSession.type = "play-and-record"; } catch (e) {} }
+    await AE.ensure();
+    await openMic();
+    if (S.cam) await openCamera();
+    await AE.decode();
+    measureLatency();
+    S.mode = "record";
+    enterPreview();
+  } catch (e) {
+    console.warn(e);
+    err.innerHTML = "";
+    const p = document.createElement("p"); p.textContent = mediaError(e); err.appendChild(p);
+    if (S.cam && e && e.name !== "NotFoundError") {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = "Петь без камеры, на фоне ансамбля";
+      b.addEventListener("click", () => { document.querySelector('input[name="cam"][value="off"]').checked = true; syncSetup(); $("#setup-go").click(); });
+      err.appendChild(b);
+    }
+    err.hidden = false;
+  } finally { btn.disabled = false; }
+});
+
+$("#go-record").addEventListener("click", () => { S.mode = "record"; show("setup"); });
+$("#go-rehearse").addEventListener("click", async () => {
+  S.mode = "rehearse";
+  if ("audioSession" in navigator) { try { navigator.audioSession.type = "playback"; } catch (e) {} }
+  await AE.ensure();
+  try { await AE.decode(); } catch (e) { toast("Не загрузилась музыка. Проверь интернет и обнови страницу."); return; }
+  S.lat = {out: Math.max(0.03, (AE.ctx.outputLatency || 0) + (AE.ctx.baseLatency || 0)), rec: 0};
+  S.guide = true;
+  AE.build(null);
+  enterPreview();
+  startTake();
+});
+
+/* ---------------- сцена */
+let raf = 0;
+function enterPreview(){
+  S.phase = "preview";
+  S.lineAnim = {idx: -1, at: 0};
+  if (S.mode === "record") AE.build(S.micStream);
+  $("#stage-back").hidden = false;
+  $("#stage-stop").hidden = true;
+  $("#rec-ind").hidden = true;
+  $("#flip").hidden = !(S.mode === "record" && S.cam);
+  $("#stage-controls").hidden = S.mode !== "record";
+  $("#meter").hidden = S.mode !== "record";
+  $("#rec-label").textContent = "Начать запись";
+  $("#toast").hidden = true;
+  show("stage");
+  cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
+}
+
+function songTime(){
+  if (S.phase === "countdown" || S.phase === "live") return AE.ctx.currentTime - S.songStart - S.lat.out;
+  return -9;
+}
+
+let lastMeter = 0, lastFrame = 0;
+function loop(){
+  const tau = performance.now() / 1000;
+  // 30 кадров в секунду: столько пишет запись, и телефону легче
+  if (tau - lastFrame < 0.031) { raf = requestAnimationFrame(loop); return; }
+  lastFrame = tau;
+  const t = songTime();
+  if (t > -1.2 && S.phase === "countdown") S.phase = "live";
+  render(t, tau);
+  if (S.phase === "preview" && S.mode === "record" && tau - lastMeter > 0.06) {
+    lastMeter = tau;
+    $("#meter-i").style.width = Math.min(100, AE.level() * 900) + "%";
+  }
+  if (S.phase === "live") {
+    const el = Math.max(0, t);
+    $("#rec-time").textContent = `${Math.floor(el / 60)}:${String(Math.floor(el % 60)).padStart(2, "0")}`;
+    if (t > SONG.duration + 0.35) { finishTake(); return; }
+  }
+  raf = requestAnimationFrame(loop);
+}
+
+function pickMime(){
+  if (!window.MediaRecorder) return "";
+  // сначала H.264 (Safari, Chrome с кодеками), затем WebM — его понимают Android и VK
+  const list = ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "video/mp4;codecs=avc1.4D401F,mp4a.40.2", "video/mp4;codecs=avc1,mp4a",
+    "video/mp4;codecs=avc1,opus", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
+  return list.find(m => { try { return MediaRecorder.isTypeSupported(m); } catch (e) { return false; } }) || "";
+}
+
+async function wakeOn(){ try { S.wake = await navigator.wakeLock.request("screen"); } catch (e) { S.wake = null; } }
+function wakeOff(){ try { S.wake && S.wake.release(); } catch (e) {} S.wake = null; }
+
+async function startTake(){
+  await AE.ensure();
+  S.stopRequested = false;
+  const PREROLL = 2.4;
+  S.songStart = AE.ctx.currentTime + PREROLL;
+  AE.play(S.songStart);
+  S.phase = "countdown";
+  S.lineAnim = {idx: -1, at: 0};
+  $("#stage-back").hidden = true;
+  $("#flip").hidden = true;
+  $("#stage-controls").hidden = true;
+  $("#meter").hidden = true;
+  $("#stage-stop").hidden = false;
+  wakeOn();
+  if (S.mode !== "record") return;
+  // запись стартует за полсекунды до музыки
+  const mime = pickMime();
+  if (!mime || !$("#cv").captureStream) { S.phase = "preview"; AE.stop(); toast("Этот браузер не умеет записывать видео. Открой страницу в Safari или Chrome. Порепетировать можно и здесь."); enterPreview(); return; }
+  S.mime = mime;
+  const vstream = $("#cv").captureStream(30);
+  const astream = AE.nodes.dest.stream;
+  const mixed = new MediaStream([...vstream.getVideoTracks(), ...astream.getAudioTracks()]);
+  S.chunks = [];
+  const rec = new MediaRecorder(mixed, {mimeType: mime, videoBitsPerSecond: 3500000, audioBitsPerSecond: 160000});
+  rec.ondataavailable = e => { if (e.data && e.data.size) S.chunks.push(e.data); };
+  S.recorder = rec;
+  const wait = Math.max(0, (S.songStart - 0.55 - AE.ctx.currentTime) * 1000);
+  setTimeout(() => {
+    if (S.recorder !== rec || S.phase === "done" || S.stopRequested) return;
+    try {
+      if (mime.startsWith("video/webm")) rec.start(1000); else rec.start();
+      S.recStartedAt = performance.now();
+      $("#rec-ind").hidden = false;
+    } catch (e) { console.warn(e); toast("Запись не запустилась. Попробуй ещё раз."); }
+  }, wait);
+}
+
+/* WebM из MediaRecorder идёт без длительности — дописываем её, чтобы ролик нормально перематывался */
+async function fixWebmDuration(blob, ms){
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  const id = p => { let len = 1, m = 0x80; while (len <= 4 && !(buf[p] & m)) { len++; m >>= 1; } let v = 0; for (let i = 0; i < len; i++) v = v * 256 + buf[p + i]; return {len, v}; };
+  const vint = p => { let len = 1, m = 0x80; while (len <= 8 && !(buf[p] & m)) { len++; m >>= 1; } if (len > 8) return null;
+    let v = buf[p] & (m - 1), all = v === m - 1; for (let i = 1; i < len; i++) { v = v * 256 + buf[p + i]; if (buf[p + i] !== 0xff) all = false; } return {len, v, unknown: all}; };
+  let p = 0, h = id(p); if (h.v !== 0x1A45DFA3) return blob;
+  let z = vint(p + h.len); p += h.len + z.len + z.v;
+  h = id(p); if (h.v !== 0x18538067) return blob;
+  const seg = vint(p + h.len); if (!seg.unknown) return blob;
+  p += h.len + seg.len;
+  while (p < buf.length) {
+    const c = id(p), cs = vint(p + c.len); if (!cs || cs.unknown) return blob;
+    const ds = p + c.len + cs.len, de = ds + cs.v;
+    if (c.v === 0x1549A966) {
+      for (let q = ds; q < de;) {
+        const i = id(q), is = vint(q + i.len); const vs = q + i.len + is.len;
+        if (i.v === 0x4489) { const dv = new DataView(buf.buffer, vs, is.v); if (is.v === 8) dv.setFloat64(0, ms); else dv.setFloat32(0, ms); return new Blob([buf], {type: blob.type}); }
+        q = vs + is.v;
+      }
+      const dur = new Uint8Array(11); dur.set([0x44, 0x89, 0x88]); new DataView(dur.buffer).setFloat64(3, ms);
+      const size = new Uint8Array(8); size[0] = 0x01; let v = cs.v + 11; for (let k = 7; k >= 1; k--) { size[k] = v & 0xff; v = Math.floor(v / 256); }
+      return new Blob([buf.subarray(0, p + c.len), size, buf.subarray(ds, de), dur, buf.subarray(de)], {type: blob.type});
+    }
+    p = de;
+  }
+  return blob;
+}
+
+function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { el.hidden = true; }, 6000); }
+
+async function finishTake(){
+  if (S.phase === "done") return;
+  S.phase = "done";
+  cancelAnimationFrame(raf);
+  AE.stop();
+  wakeOff();
+  $("#stage-stop").hidden = true;
+  $("#rec-ind").hidden = true;
+  if (S.mode !== "record") { S.phase = "idle"; show("intro"); return; }
+  const rec = S.recorder;
+  if (!rec || rec.state === "inactive") { enterPreview(); return; }
+  $("#busy").hidden = false;
+  const stopped = new Promise(res => rec.addEventListener("stop", res, {once: true}));
+  try { rec.stop(); } catch (e) {}
+  await stopped;
+  $("#busy").hidden = true;
+  S.recorder = null;
+  const type = (rec.mimeType || S.mime).split(";")[0] || "video/webm";
+  S.blob = new Blob(S.chunks, {type});
+  if (type === "video/webm") {
+    try { S.blob = await fixWebmDuration(S.blob, performance.now() - S.recStartedAt); } catch (e) { console.warn("duration", e); }
+  }
+  if (S.blobUrl) URL.revokeObjectURL(S.blobUrl);
+  S.blobUrl = URL.createObjectURL(S.blob);
+  const ext = type.includes("mp4") ? "mp4" : "webm";
+  const v = $("#result-video"); v.src = S.blobUrl;
+  const a = $("#download"); a.href = S.blobUrl; a.download = `zhorun-mandalupa.${ext}`;
+  const file = new File([S.blob], `zhorun-mandalupa.${ext}`, {type});
+  const canShare = !!(navigator.canShare && navigator.canShare({files: [file]}));
+  $("#save").hidden = !canShare;
+  $("#save").onclick = async () => {
+    try { await navigator.share({files: [file], title: "Мандалупа — караоке «Жорун»", text: "#спойнастрапонском"}); }
+    catch (e) { if (e && e.name !== "AbortError") a.click(); }
+  };
+  a.classList.toggle("primary", !canShare); a.classList.toggle("outline", canShare);
+  const note = $("#result-note");
+  if (ext === "webm") { note.hidden = false; note.textContent = "Ролик сохранится в формате WebM. VK его принимает; если какое-то приложение не откроет файл, перепиши ролик в Safari или Chrome на телефоне."; }
+  else note.hidden = true;
+  window.__lastTake = {size: S.blob.size, type, ext};
+  show("result");
+}
+
+$("#rec-start").addEventListener("click", () => { if (S.phase === "preview") startTake(); });
+$("#stage-stop").addEventListener("click", () => { S.stopRequested = true; finishTake(); });
+$("#stage-back").addEventListener("click", () => {
+  cancelAnimationFrame(raf); AE.stop(); S.phase = "idle";
+  if (S.mode === "record") stopStreams();   // в настройках можно сменить наушники — микрофон откроем заново
+  show(S.mode === "record" ? "setup" : "intro");
+});
+$("#flip").addEventListener("click", async () => {
+  S.facing = S.facing === "user" ? "environment" : "user";
+  try { await openCamera(); } catch (e) { S.facing = "user"; toast("Не получилось переключить камеру."); }
+});
+$("#retake").addEventListener("click", () => { $("#result-video").pause(); enterPreview(); });
+$("#result-home").addEventListener("click", () => { $("#result-video").pause(); stopStreams(); S.phase = "idle"; show("intro"); });
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && (S.phase === "live" || S.phase === "countdown")) {
+    if (S.mode === "record") { S.stopRequested = true; finishTake(); }
+    else { AE.stop(); cancelAnimationFrame(raf); S.phase = "idle"; show("intro"); }
+  }
+});
+
+/* ---------------- окружение */
+if (/VKAndroidApp|VKClient|com\.vkontakte|Instagram|FBAN|FBAV|Telegram/i.test(navigator.userAgent)) $("#inapp-notice").hidden = false;
+
+/* ---------------- старт */
+fontsReady.then(() => { prepareLines(); render(-9, performance.now() / 1000); });
+prepareLines();
+
+// режим проверки кадра: ?still=40&cam=0
+if (PARAMS.has("still")) {
+  const t = parseFloat(PARAMS.get("still"));
+  Promise.all([fontsReady, ...SLIDES.map(s => s.ready)]).then(() => {
+    prepareLines(); S.cam = false; S.mode = "rehearse"; S.lineAnim = {idx: -1, at: 0};
+    show("stage"); $("#stage-controls").hidden = true; document.querySelector(".stage-top").hidden = true;
+    render(t, 100); render(t, 101);
+    document.body.dataset.ready = "1";
+  });
+}
+</script>
+</body>
+</html>
