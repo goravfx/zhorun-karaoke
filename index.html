@@ -54,13 +54,15 @@ button{cursor:pointer;background:none;border:0}
 
 /* ---------- заставка */
 .intro{justify-content:flex-end;overflow:hidden}
-.intro-photo{position:absolute;inset:0;background:url(assets/hero.jpg) center 30%/cover no-repeat;transform-origin:50% 35%}
+.intro-photo{position:absolute;inset:0;background:var(--black) url(assets/hero.jpg) center top/100% auto no-repeat;transform-origin:50% 30%}
+@media (min-aspect-ratio:9/16){.intro-photo{background-size:cover;background-position:center 20%}}
 .intro.is-active .intro-photo{animation:settle 2.4s cubic-bezier(.2,.7,.2,1) both}
 @keyframes settle{from{transform:scale(1.07);filter:brightness(.6)}to{transform:none;filter:none}}
-.intro-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,9,7,.55) 0%,rgba(13,9,7,0) 22%,rgba(13,9,7,0) 38%,rgba(13,9,7,.86) 62%,var(--black) 80%)}
-.brand{position:absolute;top:calc(env(safe-area-inset-top) + 18px);left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:4px;z-index:1}
-.frog{display:block;width:150px;height:16px;color:var(--gold)}
-.wordmark{font:400 26px/1 var(--display);color:var(--gold);letter-spacing:.02em}
+.intro-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,9,7,.25) 0%,rgba(13,9,7,0) 16%,rgba(13,9,7,0) 40%,rgba(13,9,7,.86) 62%,var(--black) 80%)}
+.song{display:flex;align-items:center;gap:12px;margin:0 0 18px}
+.song img{width:56px;height:56px;border-radius:8px;flex:none;box-shadow:0 0 0 1px rgba(242,232,213,.18)}
+.song b{display:block;font-weight:600;font-size:16px;line-height:1.25}
+.song span{display:block;font-size:13.5px;color:var(--dust);line-height:1.35}
 .intro-body{position:relative;z-index:1;padding-bottom:calc(env(safe-area-inset-bottom) + 22px)}
 .intro h1{font:400 clamp(38px,11vw,50px)/1.02 var(--display);letter-spacing:-.01em;margin-bottom:14px;text-wrap:balance}
 .lead{color:rgba(242,232,213,.82);font-size:16px;max-width:34ch;margin-bottom:22px}
@@ -96,7 +98,7 @@ button{cursor:pointer;background:none;border:0}
 .card input:focus-visible+.face{outline:2px solid var(--gold-hi);outline-offset:3px}
 .face.self{background-image:linear-gradient(135deg,#2a1d16,#120c09)}
 .face.self .mirror{position:absolute;top:14px;left:12px;width:40px;height:40px;color:var(--gold)}
-.face.band{background-image:url(assets/s7-ansambl.jpg)}
+.face.clip{background-image:url(assets/card-clip.jpg)}
 
 .seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
 .seg label{position:relative;cursor:pointer}
@@ -176,11 +178,11 @@ button{cursor:pointer;background:none;border:0}
 <main>
   <!-- Заставка -->
   <section class="screen intro is-active" id="intro" aria-labelledby="intro-title">
-    <div class="intro-photo" role="img" aria-label="Жорун поёт в старинный микрофон"></div>
-    <div class="brand"><svg class="frog" aria-hidden="true"><use href="#frog"/></svg><span class="wordmark">Жорун</span></div>
+    <div class="intro-photo" role="img" aria-label="Жорун поёт на сцене из клипа «Мандалупа»"></div>
     <div class="intro-body wrap">
       <h1 id="intro-title">Спой на&nbsp;страпонском</h1>
-      <p class="lead">Караоке на «Мандалупу». Слова загораются в&nbsp;такт, а&nbsp;в&nbsp;конце у&nbsp;тебя готовый вертикальный ролик для VK&nbsp;Клипов.</p>
+      <p class="lead">Пой поверх клипа или снимай себя, а&nbsp;в&nbsp;конце забирай готовый ролик для VK&nbsp;Клипов.</p>
+      <div class="song"><img src="assets/cover-mandalupa-240.jpg" alt="" width="56" height="56"><div><b>«Мандалупа»</b><span>Песня из&nbsp;клипа, 1:49</span></div></div>
       <button class="btn primary" id="go-record" type="button"><span class="dot" aria-hidden="true"></span>Записать ролик</button>
       <button class="btn ghost" id="go-rehearse" type="button">Сначала порепетировать</button>
       <p class="notice" id="inapp-notice" hidden>Ты открыл страницу внутри приложения. Если камера не включится, открой её в&nbsp;Safari или Chrome: нажми ⋯ вверху и&nbsp;выбери «Открыть в&nbsp;браузере».</p>
@@ -201,7 +203,7 @@ button{cursor:pointer;background:none;border:0}
             <span class="face self"><svg class="mirror" viewBox="0 0 40 40" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5"><rect x="9" y="3" width="22" height="34" rx="4"/><circle cx="20" cy="17" r="5"/><path d="M12.5 31c1.6-4 4.2-6 7.5-6s5.9 2 7.5 6"/></g></svg>
               <b>Ты</b><small>Снимает фронтальная камера</small></span></label>
           <label class="card"><input type="radio" name="cam" value="off">
-            <span class="face band"><b>Ансамбль</b><small>Кадры группы, ты&nbsp;за&nbsp;кадром</small></span></label>
+            <span class="face clip"><b>Клип</b><small>Поёшь поверх клипа «Мандалупа»</small></span></label>
         </div>
       </fieldset>
 
@@ -258,6 +260,7 @@ button{cursor:pointer;background:none;border:0}
 
 <div class="rotate" aria-hidden="true">Поверни телефон вертикально</div>
 <video id="cam" playsinline muted autoplay style="position:fixed;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1"></video>
+<video id="bg" playsinline muted preload="none" style="position:fixed;left:2px;top:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1"></video>
 
 <script src="song-mandalupa.js"></script>
 <script>
@@ -307,14 +310,14 @@ const audioBytes = {};
 for (const [k, url] of Object.entries(AUDIO_SRC)) {
   audioBytes[k] = fetch(url).then(r => { if (!r.ok) throw new Error(url); return r.arrayBuffer(); });
 }
+// запасной фон, пока клип не загрузился: кадры из того же клипа
 const SLIDES = [
-  {src: "assets/hero.jpg",            t0: -9,   t1: 18,   fx: [0.50, 0.40, 1.00, 1.07]},
-  {src: "assets/s2-shmyzdya.jpg",     t0: 18,   t1: 34.3, fx: [0.50, 0.42, 1.08, 1.00]},
-  {src: "assets/s3-lygar.jpg",        t0: 34.3, t1: 43,   fx: [0.50, 0.45, 1.00, 1.06]},
-  {src: "assets/s4-drotsyk.jpg",      t0: 43,   t1: 51.6, fx: [0.50, 0.40, 1.06, 1.00]},
-  {src: "assets/s5-lokhman.jpg",      t0: 51.6, t1: 69.5, fx: [0.50, 0.38, 1.00, 1.07]},
-  {src: "assets/s6-zhorun-dvor.jpg",  t0: 69.5, t1: 87.2, fx: [0.50, 0.42, 1.07, 1.00]},
-  {src: "assets/s7-ansambl.jpg",      t0: 87.2, t1: 200,  fx: [0.50, 0.45, 1.00, 1.08]},
+  {src: "assets/clipstill-0.jpg", t0: -9,   t1: 18,   fx: [0.50, 0.40, 1.00, 1.06]},
+  {src: "assets/clipstill-1.jpg", t0: 18,   t1: 34.3, fx: [0.50, 0.42, 1.06, 1.00]},
+  {src: "assets/clipstill-2.jpg", t0: 34.3, t1: 51.6, fx: [0.50, 0.45, 1.00, 1.06]},
+  {src: "assets/clipstill-3.jpg", t0: 51.6, t1: 64.5, fx: [0.50, 0.40, 1.06, 1.00]},
+  {src: "assets/clipstill-4.jpg", t0: 64.5, t1: 87.2, fx: [0.50, 0.38, 1.00, 1.06]},
+  {src: "assets/clipstill-5.jpg", t0: 87.2, t1: 200,  fx: [0.50, 0.42, 1.06, 1.00]},
 ];
 SLIDES.forEach(s => { s.img = new Image(); s.img.decoding = "async"; s.img.src = s.src; s.ready = s.img.decode().then(() => true, () => false); });
 
@@ -445,7 +448,11 @@ function drawBackground(t){
     if ("filter" in g) g.filter = "none";
     return;
   }
-  // кадры ансамбля с медленным наездом и наплывами
+  if (BG.active() && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0) {
+    coverDraw(bgVideo, bgVideo.videoWidth, bgVideo.videoHeight, false);
+    return;
+  }
+  // пока клип грузится — кадры из него с медленным наездом
   g.fillStyle = "#0d0907"; g.fillRect(0, 0, W, H);
   const tt = Math.max(t, -9);
   for (let i = 0; i < SLIDES.length; i++) {
@@ -462,6 +469,67 @@ function drawBackground(t){
     g.globalAlpha = 1;
   }
 }
+
+/* ---------------- клип на фоне: идёт строго по времени песни */
+const bgVideo = $("#bg");
+const BG = {
+  src: "assets/mandalupa-clip.mp4",
+  state: "idle",               // idle | loading | ready | error
+  playing: false,
+  listeners: [],
+  active(){ return this.state !== "error" && (S.mode === "rehearse" || (S.mode === "record" && !S.cam)); },
+  emit(){ this.listeners.forEach(f => { try { f(); } catch (e) {} }); },
+  progress(){
+    const v = bgVideo;
+    if (!v.duration || !v.buffered || !v.buffered.length) return 0;
+    return Math.min(1, v.buffered.end(v.buffered.length - 1) / v.duration);
+  },
+  isReady(){ return this.state === "ready" || bgVideo.readyState >= 4 || (bgVideo.readyState >= 3 && this.progress() > 0.25); },
+  load(){
+    if (this.state !== "idle") return;
+    this.state = "loading";
+    const v = bgVideo;
+    v.preload = "auto"; v.src = this.src;
+    const done = () => { if (this.state === "loading") { this.state = "ready"; this.emit(); } };
+    v.addEventListener("canplaythrough", done, {once: true});
+    v.addEventListener("error", () => { this.state = "error"; this.emit(); }, {once: true});
+    v.addEventListener("progress", () => { if (this.isReady()) done(); else this.emit(); });
+    v.addEventListener("loadeddata", () => this.emit());
+    v.load();
+  },
+  // вызывается прямо в нажатии: iOS начинает грузить видео только после play()
+  unlock(){
+    if (this.state === "error") return;
+    this.load();
+    try {
+      const p = bgVideo.play();
+      if (p && p.then) p.then(() => { if (!this.playing) bgVideo.pause(); }).catch(() => {});
+    } catch (e) {}
+  },
+  sync(t){
+    if (!this.active()) return;
+    const v = bgVideo;
+    if (v.readyState < 1) return;
+    if (t < 0 || t > v.duration - 0.05) {
+      this.playing = false;
+      if (!v.paused) v.pause();
+      if (t < 0 && v.currentTime > 0.05 && !v.seeking) v.currentTime = 0;
+      return;
+    }
+    this.playing = true;
+    if (v.paused) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+    if (v.seeking) return;
+    const drift = v.currentTime - t;
+    let rate = 1;
+    if (Math.abs(drift) > 0.35) { v.currentTime = t + 0.08; }
+    else if (Math.abs(drift) > 0.03) rate = Math.max(0.9, Math.min(1.1, 1 - drift * 1.5));
+    if (Math.abs(v.playbackRate - rate) > 0.01) v.playbackRate = rate;
+  },
+  stop(){
+    this.playing = false;
+    try { bgVideo.pause(); bgVideo.playbackRate = 1; if (bgVideo.readyState >= 1) bgVideo.currentTime = 0; } catch (e) {}
+  },
+};
 
 function drawGrade(){
   g.drawImage(overlayLayer, 0, 0);
@@ -603,7 +671,7 @@ function drawProgress(t){
 function render(t, tau){
   drawBackground(t);
   drawGrade();
-  drawHeader(t);
+  if (!BG.active()) drawHeader(t);   // в клипе своя вывеска «ЖОРУН» на сцене — шапку не дублируем
   drawLyrics(t, tau);
   if (t > -1.5 && t < SONG.firstBeat) drawCountdown(t);
   if (t >= 0) drawProgress(t);
@@ -713,7 +781,10 @@ function syncSetup(){
   S.guide = gd.checked;
   $("#setup-go").textContent = S.cam ? "Включить камеру и микрофон" : "Включить микрофон";
 }
-document.querySelectorAll('#setup input').forEach(i => i.addEventListener("change", syncSetup));
+document.querySelectorAll('#setup input').forEach(i => i.addEventListener("change", () => {
+  syncSetup();
+  if (!S.cam) BG.unlock();   // выбор «Клип» — сразу начинаем грузить видео
+}));
 syncSetup();
 
 /* ---------------- камера и микрофон */
@@ -759,6 +830,7 @@ $("#setup-go").addEventListener("click", async () => {
   syncSetup();
   const err = $("#setup-error"); err.hidden = true;
   const btn = $("#setup-go"); btn.disabled = true;
+  if (!S.cam) BG.unlock();
   try {
     if ("audioSession" in navigator) { try { navigator.audioSession.type = "play-and-record"; } catch (e) {} }
     await AE.ensure();
@@ -773,7 +845,7 @@ $("#setup-go").addEventListener("click", async () => {
     err.innerHTML = "";
     const p = document.createElement("p"); p.textContent = mediaError(e); err.appendChild(p);
     if (S.cam && e && e.name !== "NotFoundError") {
-      const b = document.createElement("button"); b.type = "button"; b.textContent = "Петь без камеры, на фоне ансамбля";
+      const b = document.createElement("button"); b.type = "button"; b.textContent = "Петь без камеры, поверх клипа";
       b.addEventListener("click", () => { document.querySelector('input[name="cam"][value="off"]').checked = true; syncSetup(); $("#setup-go").click(); });
       err.appendChild(b);
     }
@@ -784,6 +856,7 @@ $("#setup-go").addEventListener("click", async () => {
 $("#go-record").addEventListener("click", () => { S.mode = "record"; show("setup"); });
 $("#go-rehearse").addEventListener("click", async () => {
   S.mode = "rehearse";
+  BG.unlock();
   if ("audioSession" in navigator) { try { navigator.audioSession.type = "playback"; } catch (e) {} }
   await AE.ensure();
   try { await AE.decode(); } catch (e) { toast("Не загрузилась музыка. Проверь интернет и обнови страницу."); return; }
@@ -791,8 +864,27 @@ $("#go-rehearse").addEventListener("click", async () => {
   S.guide = true;
   AE.build(null);
   enterPreview();
-  startTake();
+  await waitForClip();
+  if (S.phase === "preview" && S.mode === "rehearse") startTake();
 });
+
+/* ждём, пока клип загрузится настолько, чтобы идти без остановок (не дольше 25 с) */
+function waitForClip(){
+  if (!BG.active() || BG.isReady() || BG.state === "error") return Promise.resolve();
+  const busy = $("#busy");
+  return new Promise(res => {
+    const t0 = performance.now();
+    const tick = () => {
+      if (BG.isReady() || BG.state === "error" || performance.now() - t0 > 25000 || S.phase !== "preview") {
+        busy.hidden = true; BG.listeners = BG.listeners.filter(f => f !== tick); clearInterval(iv); res(); return;
+      }
+      busy.hidden = false;
+      busy.textContent = `Загружаю клип… ${Math.round(BG.progress() * 100)}%`;
+    };
+    const iv = setInterval(tick, 300);
+    BG.listeners.push(tick); tick();
+  });
+}
 
 /* ---------------- сцена */
 let raf = 0;
@@ -825,6 +917,7 @@ function loop(){
   lastFrame = tau;
   const t = songTime();
   if (t > -1.2 && S.phase === "countdown") S.phase = "live";
+  if (S.phase === "countdown" || S.phase === "live") BG.sync(t);
   render(t, tau);
   if (S.phase === "preview" && S.mode === "record" && tau - lastMeter > 0.06) {
     lastMeter = tau;
@@ -922,12 +1015,14 @@ async function finishTake(){
   S.phase = "done";
   cancelAnimationFrame(raf);
   AE.stop();
+  BG.stop();
   wakeOff();
   $("#stage-stop").hidden = true;
   $("#rec-ind").hidden = true;
   if (S.mode !== "record") { S.phase = "idle"; show("intro"); return; }
   const rec = S.recorder;
   if (!rec || rec.state === "inactive") { enterPreview(); return; }
+  $("#busy").textContent = "Собираю ролик…";
   $("#busy").hidden = false;
   const stopped = new Promise(res => rec.addEventListener("stop", res, {once: true}));
   try { rec.stop(); } catch (e) {}
@@ -959,10 +1054,14 @@ async function finishTake(){
   show("result");
 }
 
-$("#rec-start").addEventListener("click", () => { if (S.phase === "preview") startTake(); });
+$("#rec-start").addEventListener("click", async () => {
+  if (S.phase !== "preview") return;
+  if (BG.active()) { BG.unlock(); await waitForClip(); if (S.phase !== "preview") return; }
+  startTake();
+});
 $("#stage-stop").addEventListener("click", () => { S.stopRequested = true; finishTake(); });
 $("#stage-back").addEventListener("click", () => {
-  cancelAnimationFrame(raf); AE.stop(); S.phase = "idle";
+  cancelAnimationFrame(raf); AE.stop(); BG.stop(); S.phase = "idle";
   if (S.mode === "record") stopStreams();   // в настройках можно сменить наушники — микрофон откроем заново
   show(S.mode === "record" ? "setup" : "intro");
 });
@@ -976,7 +1075,7 @@ $("#result-home").addEventListener("click", () => { $("#result-video").pause(); 
 document.addEventListener("visibilitychange", () => {
   if (document.hidden && (S.phase === "live" || S.phase === "countdown")) {
     if (S.mode === "record") { S.stopRequested = true; finishTake(); }
-    else { AE.stop(); cancelAnimationFrame(raf); S.phase = "idle"; show("intro"); }
+    else { AE.stop(); BG.stop(); cancelAnimationFrame(raf); S.phase = "idle"; show("intro"); }
   }
 });
 
@@ -990,8 +1089,16 @@ prepareLines();
 // режим проверки кадра: ?still=40&cam=0
 if (PARAMS.has("still")) {
   const t = parseFloat(PARAMS.get("still"));
-  Promise.all([fontsReady, ...SLIDES.map(s => s.ready)]).then(() => {
-    prepareLines(); S.cam = false; S.mode = "rehearse"; S.lineAnim = {idx: -1, at: 0};
+  const clipFrame = () => new Promise(res => {
+    if (!PARAMS.has("clip")) return res();
+    S.mode = "rehearse"; BG.load();
+    bgVideo.addEventListener("loadeddata", () => {
+      bgVideo.addEventListener("seeked", () => res(), {once: true});
+      bgVideo.currentTime = Math.max(0, t);
+    }, {once: true});
+  });
+  Promise.all([fontsReady, ...SLIDES.map(s => s.ready)]).then(clipFrame).then(() => {
+    prepareLines(); S.cam = false; S.mode = PARAMS.has("clip") ? "rehearse" : "still"; S.lineAnim = {idx: -1, at: 0};
     show("stage"); $("#stage-controls").hidden = true; document.querySelector(".stage-top").hidden = true;
     render(t, 100); render(t, 101);
     document.body.dataset.ready = "1";
