@@ -1,0 +1,4 @@
+MediaPipe Tasks Vision 0.10.35 (vision_bundle.js, wasm/) and the Face Landmarker
+model (face_landmarker.task) — Copyright Google LLC, Apache License 2.0.
+https://github.com/google-ai-edge/mediapipe
+face-canon.js is derived from MediaPipe's canonical_face_model.obj (Apache 2.0).
