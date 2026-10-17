@@ -583,6 +583,7 @@ function drawLine(L, t, y, scale, alpha, filled){
 }
 
 const Y_CUR = 1078, Y_NEXT = 1156, NEXT_SCALE = 0.62;
+const END_CARD = 2.4;   // после песни ещё пара секунд финальной карточки: «Спой на страпонском» и хэштег
 function easeOut(p){ return 1 - Math.pow(1 - p, 3); }
 
 function drawLyrics(t, tau){
@@ -926,7 +927,7 @@ function loop(){
   if (S.phase === "live") {
     const el = Math.max(0, t);
     $("#rec-time").textContent = `${Math.floor(el / 60)}:${String(Math.floor(el % 60)).padStart(2, "0")}`;
-    if (t > SONG.duration + 0.35) { finishTake(); return; }
+    if (t > SONG.duration + END_CARD) { finishTake(); return; }
   }
   raf = requestAnimationFrame(loop);
 }
