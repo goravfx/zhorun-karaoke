@@ -6,6 +6,7 @@
 import { CANON_V, CANON_F, CANON_UV } from "./face-canon.js";
 
 const BASE = new URL("./", import.meta.url).href;
+const VQ = "?v=3";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
 const DEG = Math.PI / 180;
 
 /* ---------------- математика */
@@ -162,14 +163,19 @@ vec3 lm(uint i){ return texelFetch(u_lm, ivec2(int(i), 0), 0).xyz; }
 vec4 clipOf(vec3 P){ vec2 c = u_view.xy + P.xy * u_view.z; return vec4(c.x / u_canvas.x * 2.0 - 1.0, 1.0 - c.y / u_canvas.y * 2.0, (P.z - u_zc) * u_view.w, 1.0); }
 `;
 const VS_RIGID = VHEAD + `
-layout(location=0) in vec3 a_p; layout(location=1) in vec3 a_n; layout(location=2) in vec2 a_uv; layout(location=3) in float a_a;
-out vec2 v_uv; out float v_a; out vec3 v_n;
-void main(){ vec3 P = u_s * (u_R * a_p) + u_t; v_n = u_R * a_n; v_uv = a_uv; v_a = a_a; gl_Position = clipOf(P); }`;
+layout(location=0) in vec3 a_p; layout(location=1) in vec3 a_n; layout(location=2) in vec2 a_uv; layout(location=3) in float a_a; layout(location=4) in vec3 a_t;
+out vec2 v_uv; out float v_a; out vec3 v_n; out vec3 v_t;
+void main(){ vec3 P = u_s * (u_R * a_p) + u_t; v_n = u_R * a_n; v_t = u_R * a_t; v_uv = a_uv; v_a = a_a; gl_Position = clipOf(P); }`;
 const VS_BOUND = VHEAD + `
 layout(location=1) in vec3 a_n; layout(location=2) in vec2 a_uv; layout(location=3) in float a_off; layout(location=5) in uint a_i;
 uniform float u_off;
 out vec2 v_uv; out float v_a; out vec3 v_n;
 void main(){ vec3 N = normalize(u_R * a_n); vec3 P = lm(a_i) + N * ((a_off + u_off) * u_s); v_n = N; v_uv = a_uv; v_a = 1.0; gl_Position = clipOf(P); }`;
+// бакенбарды: смесь двух точек контура лица + смещение в осях головы
+const VS_STRIP = VHEAD + `
+layout(location=1) in vec3 a_n; layout(location=2) in vec2 a_uv; layout(location=4) in vec3 a_d; layout(location=5) in uvec2 a_ii; layout(location=6) in float a_w;
+out vec2 v_uv; out float v_a; out vec3 v_n;
+void main(){ vec3 N = normalize(u_R * a_n); vec3 P = mix(lm(a_ii.x), lm(a_ii.y), a_w) + (u_R * a_d) * u_s; v_n = N; v_uv = a_uv; v_a = 1.0; gl_Position = clipOf(P); }`;
 const FS_DEPTH = `#version 300 es
 precision mediump float; out vec4 o; void main(){ o = vec4(0.0); }`;
 const FS_GRAY = `#version 300 es
@@ -178,15 +184,21 @@ void main(){ vec3 N = normalize(v_n); float l = 0.35 + 0.65 * max(0.0, dot(N, no
 const FS_SHELL = `#version 300 es
 precision highp float;
 uniform sampler2D u_tex; uniform float u_exp;
-in vec2 v_uv; in float v_a; in vec3 v_n; out vec4 o;
+in vec2 v_uv; in float v_a; in vec3 v_n; in vec3 v_t; out vec4 o;
 void main(){
   vec4 c = texture(u_tex, v_uv);                  // цвет уже умножен на альфу
   vec3 N = normalize(v_n);
-  float rim = smoothstep(0.0, 0.1, -N.z);         // край по силуэту, обратная сторона не рисуется
+  float rim = smoothstep(-0.04, 0.02, -N.z);      // бока причёски плотные, изнанка не рисуется
   float k = v_a * rim;
   if (c.a * k < 0.02) discard;
-  float lit = 0.92 + 0.12 * max(0.0, dot(N, normalize(vec3(0.2, -0.6, -0.75))));
-  o = vec4(c.rgb * k * lit * u_exp, c.a * k);
+  vec3 L = normalize(vec3(0.15, -0.75, -0.65));   // свет сверху-спереди (y вниз, z от камеры)
+  float dif = 0.8 + 0.28 * max(0.0, dot(N, L));
+  // блеск вдоль прядей (Kajiya–Kay): полоса бликов «едет» по коку, когда голова поворачивается
+  vec3 H = normalize(L + vec3(0.0, 0.0, -1.0));
+  float tl = length(v_t), spec = 0.0;
+  if (tl > 1e-4) { float th = dot(v_t / tl, H); spec = pow(sqrt(max(0.0, 1.0 - th * th)), 14.0) * smoothstep(0.0, 0.5, dot(N, H)); }
+  vec3 col = c.rgb * dif + vec3(0.92, 0.9, 0.87) * (spec * 0.075 * c.a);
+  o = vec4(col * k * u_exp, c.a * k);
 }`;
 const FS_DECAL = `#version 300 es
 precision highp float;
@@ -219,7 +231,7 @@ function vao(gl, attrs, idx){
   gl.bindVertexArray(null);
   return { o, count: idx.length, type: idx instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT };
 }
-function texture(gl, img){
+function texture(gl, img, clampS){
   const t = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, t);
   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
@@ -228,7 +240,7 @@ function texture(gl, img){
   gl.generateMipmap(gl.TEXTURE_2D);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, clampS ? gl.CLAMP_TO_EDGE : gl.REPEAT);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   return t;
 }
@@ -271,6 +283,7 @@ class Renderer {
     this.pBoundDepth = program(gl, VS_BOUND, debug ? FS_GRAY : FS_DEPTH);
     this.pShell = program(gl, VS_RIGID, FS_SHELL);
     this.pDecal = program(gl, VS_BOUND, FS_DECAL);
+    this.pStrip = program(gl, VS_STRIP, FS_DECAL);
     this.lmTex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, this.lmTex);
     gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA32F, 478, 1);
@@ -278,6 +291,7 @@ class Renderer {
     this.lmBuf = new Float32Array(478 * 4);
     this.hairTex = texture(gl, assets.hair);
     this.decalTex = texture(gl, assets.decal);
+    this.burnTex = texture(gl, assets.burnImg, true);
 
     // оболочка кока из сетки радиусов (λ шаг 360/NL, μ от 12° шаг 2.5°)
     const dv = new DataView(assets.shell.buffer, assets.shell.byteOffset, assets.shell.byteLength);
@@ -308,7 +322,10 @@ class Renderer {
     }
     this.box = [];
     for (const x of [lo[0], hi[0]]) for (const y of [Math.min(lo[1], -9.6), hi[1]]) for (const z of [lo[2], hi[2]]) this.box.push([x, y, z]);
-    this.shell = vao(gl, [[0, P, 3], [1, Nn, 3], [2, UVs, 2], [3, A, 1]], new Uint32Array(idx));
+    // направление прядей — от лба к затылку (вдоль μ)
+    const Tt = new Float32Array(NM * cols * 3);
+    for (let j = 0; j < NM; j++) for (let i = 0; i < cols; i++) Tt.set(nrm(sub(grid(j + 1, i), grid(j - 1, i))), (j * cols + i) * 3);
+    this.shell = vao(gl, [[0, P, 3], [1, Nn, 3], [2, UVs, 2], [3, A, 1], [4, Tt, 3]], new Uint32Array(idx));
     // сетка лица: наклейка и окклюдер
     const N = faceNormals(), uv = new Float32Array(468 * 2), off = new Float32Array(468), ids = new Uint16Array(468);
     for (let i = 0; i < 468; i++) {
@@ -317,11 +334,20 @@ class Renderer {
       off[i] = (ax < 4.3 && y < -1.6 && y > -9.2) ? 0.22 : y > 5 ? 0.12 : 0.1;   // усы чуть выше кожи — у них есть объём
     }
     this.decal = vao(gl, [[1, N, 3], [2, uv, 2], [3, off, 1], [5, ids, 1, true]], new Uint16Array(assets.tris));
-    this.faceOcc = vao(gl, [[1, N, 3], [2, uv, 2], [3, new Float32Array(468), 1], [5, ids, 1, true]], new Uint16Array(CANON_F));
+    const occOff = new Float32Array(468);
+    for (let i = 0; i < 468; i++) { const ax = Math.abs(CANON_V[i * 3]); occOff[i] = -0.7 * clamp((ax - 5.5) / 2.1, 0, 1); }
+    this.faceOcc = vao(gl, [[1, N, 3], [2, uv, 2], [3, occOff, 1], [5, ids, 1, true]], new Uint16Array(CANON_F));
     const sk = ellipsoid(HC, HA.map(a => a - 0.6)), nk = neck();
     const rig = m => vao(gl, [[0, m.p, 3], [1, m.n, 3], [2, new Float32Array(m.p.length / 3 * 2), 2], [3, new Float32Array(m.p.length / 3).fill(1), 1]], m.idx);
     this.skull = rig(sk); this.neck = rig(nk);
-    this.stats = { shellTris: idx.length / 3, decalTris: assets.tris.length / 3 };
+    // бакенбарды: [nv, ni] uint16; nv×(i0, i1) uint16; nv×(w, d3, n3, uv2) float32; ni индексов
+    const bb = assets.burns, nv = bb[0] | (bb[1] << 8), ni = bb[2] | (bb[3] << 8);
+    const bi = new Uint16Array(bb.slice(4, 4 + nv * 4).buffer), bf = new Float32Array(bb.slice(4 + nv * 4, 4 + nv * 40).buffer);
+    const bidx = new Uint16Array(bb.slice(4 + nv * 40, 4 + nv * 40 + ni * 2).buffer);
+    const bw = new Float32Array(nv), bd = new Float32Array(nv * 3), bn = new Float32Array(nv * 3), buv = new Float32Array(nv * 2);
+    for (let i = 0; i < nv; i++) { const o = i * 9; bw[i] = bf[o]; bd.set(bf.subarray(o + 1, o + 4), i * 3); bn.set(bf.subarray(o + 4, o + 7), i * 3); buv.set(bf.subarray(o + 7, o + 9), i * 2); }
+    this.burns = vao(gl, [[1, bn, 3], [2, buv, 2], [4, bd, 3], [5, bi, 2, true], [6, bw, 1]], bidx);
+    this.stats = { shellTris: idx.length / 3, decalTris: assets.tris.length / 3, burnTris: ni / 3 };
   }
   upload(L){
     const b = this.lmBuf;
@@ -365,7 +391,7 @@ class Renderer {
     // 1) окклюдеры: лицо, череп и шея — только глубина (в отладке — серая голова)
     gl.disable(gl.BLEND);
     if (!this.debug) gl.colorMask(false, false, false, false);
-    let u = use(this.pBoundDepth); gl.uniform1f(u.u_off, this.debug ? 0 : -0.35); draw(this.faceOcc);
+    let u = use(this.pBoundDepth); gl.uniform1f(u.u_off, this.debug ? 0 : -0.25); draw(this.faceOcc);
     use(this.pRigidDepth); draw(this.skull); draw(this.neck);
     gl.colorMask(true, true, true, true);
     // 2) кок
@@ -378,6 +404,9 @@ class Renderer {
     u = use(this.pDecal); gl.uniform1f(u.u_off, 0);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.decalTex); gl.uniform1i(u.u_tex, 1);
     if (!(this.debug && this.debug.nodecal)) draw(this.decal);
+    u = use(this.pStrip);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.burnTex); gl.uniform1i(u.u_tex, 1);
+    if (!(this.debug && this.debug.nodecal)) draw(this.burns);
     gl.depthMask(true);
     gl.bindVertexArray(null);
     gl.disable(gl.SCISSOR_TEST);
@@ -401,7 +430,7 @@ async function makeTracker(mode, delegate, onProgress, useWorker){
   const want = delegate || (ios ? "CPU" : "GPU");
   if (useWorker && mode === "VIDEO" && typeof Worker !== "undefined" && typeof OffscreenCanvas !== "undefined" && typeof createImageBitmap === "function") {
     try {
-      const w = new Worker(BASE + "track-worker.js");
+      const w = new Worker(BASE + "track-worker.js" + VQ);
       const ready = await new Promise((res, rej) => {
         const to = setTimeout(() => rej(new Error("worker timeout")), 25000);
         w.onmessage = e => { if (e.data.type === "ready") { clearTimeout(to); res(e.data); } else if (e.data.type === "error") { clearTimeout(to); rej(new Error(e.data.error)); } };
@@ -410,7 +439,7 @@ async function makeTracker(mode, delegate, onProgress, useWorker){
         w.postMessage({ type: "init", bundle: BASE + "mp/vision_bundle_cjs.js", loader, wasm: wasmUrl, model: mcopy, delegate: want }, [mcopy]);
       });
       w.onerror = null;
-      return { kind: "worker", worker: w, delegate: ready.delegate };
+      return { kind: "worker", worker: w, delegate: ready.delegate, ios };
     } catch (e) { console.warn("mask: worker failed, using main thread", e); }
   }
   const files = { wasmLoaderPath: loader, wasmBinaryPath: wasmUrl };
@@ -426,10 +455,10 @@ async function makeTracker(mode, delegate, onProgress, useWorker){
 
 /* ---------------- снаружи */
 export async function createMask({ mode = "VIDEO", delegate = null, debug = false, onProgress = null, worker = true, fresh = true } = {}){
-  const [hair, decal, shell, tris] = await Promise.all([
-    loadImage(BASE + "zhorun/hair.webp"), loadImage(BASE + "zhorun/decal.webp"),
-    fetchBytes(BASE + "zhorun/shell.bin"), fetchBytes(BASE + "zhorun/decal_tris.bin")]);
-  const r = new Renderer({ hair, decal, shell, tris: new Uint16Array(tris.buffer, tris.byteOffset, tris.byteLength / 2) }, debug);
+  const [hair, decal, burnImg, burns, shell, tris] = await Promise.all([
+    loadImage(BASE + "zhorun/hair.webp" + VQ), loadImage(BASE + "zhorun/decal.webp" + VQ), loadImage(BASE + "zhorun/burns.webp" + VQ), fetchBytes(BASE + "zhorun/burns.bin" + VQ),
+    fetchBytes(BASE + "zhorun/shell.bin" + VQ), fetchBytes(BASE + "zhorun/decal_tris.bin" + VQ)]);
+  const r = new Renderer({ hair, decal, burnImg, burns, shell, tris: new Uint16Array(tris.buffer, tris.byteOffset, tris.byteLength / 2) }, debug);
   const tr = await makeTracker(mode, delegate, onProgress, worker);
   const sm = new Smoother();
   const raw = new Float32Array(478 * 3);
@@ -443,33 +472,53 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
     raw, get delegate(){ return tr.delegate; }, kind: tr.kind, stats: r.stats,
     found: false, vis: 0, exposure: 1, pose: null, lm: null, srcW: 0, srcH: 0, miss: 0,
     frame: null, frameW: 0, frameH: 0, latency: 0, detMs: 0, results: 0, lastResult: 0, inflight: null,
+    rate: 0, sync: false, vel: null, tCap: 0, _prev: null,
     _ingest(lmNorm, W, H, nowMs, smooth){
       this.srcW = W; this.srcH = H;
       for (let i = 0; i < 478; i++) { raw[i * 3] = lmNorm[i * 3] * W; raw[i * 3 + 1] = lmNorm[i * 3 + 1] * H; raw[i * 3 + 2] = lmNorm[i * 3 + 2] * W; }
       const o = sm.apply(raw, nowMs / 1000, smooth);
       this.lm = o.lm; this.pose = o.pose;
-      r.upload(this.lm);
+      // скорость головы — чтобы на живом видео «довести» маску до текущего момента
+      const pv = this._prev, P = this.pose;
+      if (smooth && pv && nowMs - pv.t > 5 && nowMs - pv.t < 300) {
+        const dt = (nowMs - pv.t) / 1000;
+        let q = P.q; if (q[0] * pv.q[0] + q[1] * pv.q[1] + q[2] * pv.q[2] + q[3] * pv.q[3] < 0) q = q.map(x => -x);
+        const nv = { t: [0, 1, 2].map(k => (P.t[k] - pv.tt[k]) / dt), s: (P.s / pv.s - 1) / dt, q: [0, 1, 2, 3].map(k => (q[k] - pv.q[k]) / dt) };
+        const v = this.vel;
+        this.vel = v ? { t: v.t.map((x, k) => x * 0.4 + nv.t[k] * 0.6), s: v.s * 0.4 + nv.s * 0.6, q: v.q.map((x, k) => x * 0.4 + nv.q[k] * 0.6) } : nv;
+      } else this.vel = null;
+      this._prev = { t: nowMs, tt: P.t.slice(), s: P.s, q: P.q.slice() };
+      this.tCap = nowMs;
       this.found = true; this.miss = 0;
     },
-    _lost(){ if (++this.miss > 3) { this.found = false; sm.reset(); } },
-    // кадр камеры → в поиск лица; результат придёт сам, и тогда этот же кадр пойдёт на экран
+    _lost(){ if (++this.miss > 3) { this.found = false; sm.reset(); this.vel = null; this._prev = null; } },
+    // кадр камеры → в поиск лица (в отдельном потоке; результат придёт сам)
     pump(video, now = performance.now()){
       if (!video || video.readyState < 2 || !video.videoWidth) return;
+      this._vid = video;
       if (this.inflight) { if (now - this.inflight.t0 > 1500) { this.inflight = null; this.frame = null; } return; }
       if (!this._fresh(video, now)) return;
       const vw = video.videoWidth, vh = video.videoHeight;
-      const h = holds[holdIdx]; holdIdx ^= 1;
-      if (h.c.width !== vw || h.c.height !== vh) { h.c.width = vw; h.c.height = vh; }
-      h.g.drawImage(video, 0, 0, vw, vh);
-      const kk = Math.min(1, 640 / Math.max(vw, vh)), sw = Math.round(vw * kk), sh = Math.round(vh * kk);
-      if (small.width !== sw || small.height !== sh) { small.width = sw; small.height = sh; }
-      sg.drawImage(h.c, 0, 0, sw, sh);
+      const kk = Math.min(1, 480 / Math.max(vw, vh)), sw = Math.round(vw * kk), sh = Math.round(vh * kk);
       const id = ++seq, ts = Math.round(now);
-      this.inflight = { id, t0: now, hold: h, vw, vh };
+      // быстрый телефон: держим кадр и показываем его вместе с маской (идеальное совпадение);
+      // медленный: показываем живое видео, а маску «доводим» по скорости головы
+      let hold = null;
+      if (this.sync) {
+        hold = holds[holdIdx]; holdIdx ^= 1;
+        if (hold.c.width !== vw || hold.c.height !== vh) { hold.c.width = vw; hold.c.height = vh; }
+        hold.g.drawImage(video, 0, 0, vw, vh);
+      }
+      this.inflight = { id, t0: now, hold, vw, vh };
+      const src = hold ? hold.c : video;
       if (tr.kind === "worker") {
-        createImageBitmap(small).then(bmp => tr.worker.postMessage({ type: "frame", id, ts, bmp }, [bmp]))
-          .catch(() => { this.inflight = null; });
+        const send = bmp => { const d = performance.now() - now; this.bmpMs = this.bmpMs ? this.bmpMs * 0.9 + d * 0.1 : d; tr.worker.postMessage({ type: "frame", id, ts, bmp }, [bmp]); };
+        const viaCanvas = () => { if (small.width !== sw || small.height !== sh) { small.width = sw; small.height = sh; } sg.drawImage(src, 0, 0, sw, sh); return createImageBitmap(small); };
+        (this._resizeOK !== false ? createImageBitmap(src, { resizeWidth: sw, resizeHeight: sh, resizeQuality: "low" }).catch(() => { this._resizeOK = false; return viaCanvas(); }) : viaCanvas())
+          .then(send).catch(() => { this.inflight = null; });
       } else {
+        if (small.width !== sw || small.height !== sh) { small.width = sw; small.height = sh; }
+        sg.drawImage(src, 0, 0, sw, sh);
         const t0 = performance.now();
         let res = null;
         try { res = tr.fl.detectForVideo(small, ts); } catch (e) { console.warn("mask: detect", e); }
@@ -479,17 +528,44 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
         this._result(id, lm, performance.now() - t0);
       }
     },
-    _result(id, lm, ms){
+    _result(id, lm, ms, skip){
       const f = this.inflight;
       if (!f || f.id !== id) return;
       this.inflight = null;
+      if (skip) return;
       const now = performance.now();
-      this.frame = f.hold.c; this.frameW = f.vw; this.frameH = f.vh;
-      this.latency = this.latency ? this.latency * 0.9 + (now - f.t0) * 0.1 : now - f.t0;
-      this.detMs = this.detMs ? this.detMs * 0.9 + ms * 0.1 : ms;
-      this.results++; this.lastResult = now;
-      if (lm) { this._ingest(lm, f.vw, f.vh, f.t0, true); if (this.results % 12 === 1) this._light(f.hold.c); }
+      this.frame = f.hold ? f.hold.c : null; this.frameW = f.vw; this.frameH = f.vh;
+      // медианы по последним кадрам: первые (прогрев) и случайные долгие кадры не сбивают решения
+      const H = this._hist || (this._hist = { lat: [], det: [], at: [] });
+      const push = (a, v) => { a.push(v); if (a.length > 15) a.shift(); };
+      push(H.lat, now - f.t0); push(H.det, ms); push(H.at, now);
+      const med = a => { const b = a.slice().sort((x, y) => x - y); return b[b.length >> 1]; };
+      this.latency = med(H.lat); this.detMs = med(H.det);
+      this.rate = H.at.length > 2 ? (H.at.length - 1) * 1000 / Math.max(1, now - H.at[0]) : 0;
+      this.results++; this._sinceSwitch = (this._sinceSwitch || 0) + 1;
+      this.lastResult = now;
+      // держать кадр стоит, только если поиск быстрый; с запасом, чтобы режим не мигал туда-сюда
+      if (this.results > 10) this.sync = this.sync ? (this.latency < 58 && this.rate > 18) : (this.latency < 42 && this.rate > 24);
+      if (lm) { this._ingest(lm, f.vw, f.vh, f.t0, true); if (this.results % 15 === 1) this._light(f.hold ? f.hold.c : this._vid || null); }
       else this._lost();
+      this._tune();
+    },
+    // на Android пробуем и видеокарту, и процессор: оставляем то, что быстрее на этом телефоне
+    _tune(){
+      if (tr.kind !== "worker" || this._tuneDone || tr.ios) return;
+      if (this._switching || this._sinceSwitch < 12) return;
+      if (!this._trial) {
+        if (this.detMs <= 26) { if (this.results > 40) this._tuneDone = true; return; }
+        this._trial = { from: tr.delegate, ms: this.detMs };
+        this._switching = true;
+        tr.worker.postMessage({ type: "switch", delegate: tr.delegate === "GPU" ? "CPU" : "GPU" });
+      } else {
+        if (tr.delegate !== this._trial.from && this.detMs > this._trial.ms * 0.9) {
+          this._switching = true;
+          tr.worker.postMessage({ type: "switch", delegate: this._trial.from });
+        }
+        this._tuneDone = true;
+      }
     },
     _fresh(video, now){
       if (!fresh || !video.requestVideoFrameCallback) return true;
@@ -503,6 +579,7 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
       return true;
     },
     _light(src){
+      if (!src) return;
       try {
         const L = this.lm, xs = [234, 454, 10, 152].map(i => L[i * 3]), ys = [234, 454, 10, 152].map(i => L[i * 3 + 1]);
         const x0 = Math.max(0, Math.min(...xs)), x1 = Math.min(this.srcW, Math.max(...xs)), y0 = Math.max(0, Math.min(...ys)), y1 = Math.min(this.srcH, Math.max(...ys));
@@ -525,13 +602,33 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
       this.vis = 1;
       return true;
     },
-    // view: как кадр лёг на холст (как coverDraw): dx, dy, k — пикселей холста на пиксель кадра
+    // поза «на сейчас»: от кадра, где нашли лицо, до живого кадра на экране голова успела сдвинуться
+    _predict(now){
+      const P = this.pose, v = this.vel;
+      if (!P || !v) return null;
+      const dt = clamp((now - this.tCap) / 1000, 0, 0.12) * 0.85;
+      if (dt < 0.002) return null;
+      const t = [P.t[0] + v.t[0] * dt, P.t[1] + v.t[1] * dt, P.t[2] + v.t[2] * dt];
+      const s = P.s * (1 + clamp(v.s * dt, -0.1, 0.1));
+      const q = P.q.map((x, k) => x + v.q[k] * dt), ql = Math.hypot(...q);
+      for (let k = 0; k < 4; k++) q[k] /= ql;
+      const R = quatToR(q), L = this.lm, out = this._plm || (this._plm = new Float32Array(478 * 3)), ks = s / P.s;
+      for (let i = 0; i < 478; i++) {
+        const d = RTmul(P.R, [L[i * 3] - P.t[0], L[i * 3 + 1] - P.t[1], L[i * 3 + 2] - P.t[2]]), e = Rmul(R, d);
+        out[i * 3] = e[0] * ks + t[0]; out[i * 3 + 1] = e[1] * ks + t[1]; out[i * 3 + 2] = e[2] * ks + t[2];
+      }
+      return { pose: { s, R, t, q }, lm: out };
+    },
+    // view: как кадр лёг на холст (как coverDraw): dx, dy, k — пикселей холста на пиксель кадра; live — поверх живого видео
     draw(g, view, alpha = 1){
       this.vis += ((this.found ? 1 : 0) - this.vis) * 0.4;
       if (this.vis < 0.02 || !this.pose) return;
-      const box = r.bbox(this.pose, view, this.lm);
+      const pr = view.live ? this._predict(performance.now()) : null;
+      const pose = pr ? pr.pose : this.pose, lm = pr ? pr.lm : this.lm;
+      r.upload(lm);
+      const box = r.bbox(pose, view, lm);
       if (box[2] < 2 || box[3] < 2) return;
-      r.render(this.pose, view, this.exposure, box);
+      r.render(pose, view, this.exposure, box);
       g.save();
       g.globalAlpha = Math.min(1, this.vis) * alpha;
       if (view.mirror) { g.translate(view.W, 0); g.scale(-1, 1); }
@@ -559,6 +656,14 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
       return [dx + x0 * k, dy + y0 * k, dx + x1 * k, dy + y1 * k];
     },
   };
-  if (tr.kind === "worker") tr.worker.onmessage = e => { const d = e.data; if (d.type === "result") M._result(d.id, d.lm, d.ms); };
+  if (tr.kind === "worker") tr.worker.onmessage = e => {
+    const d = e.data;
+    if (d.type === "result") M._result(d.id, d.lm, d.ms, d.skip);
+    else if (d.type === "switched") {
+      M._switching = false;
+      if (d.delegate !== tr.delegate) { tr.delegate = d.delegate; M._sinceSwitch = 0; if (M._hist) { M._hist.det.length = 0; M._hist.lat.length = 0; M._hist.at.length = 0; } }
+      else if (M._trial && !M._tuneDone) M._tuneDone = true;   // другой режим не завёлся — остаёмся
+    }
+  };
   return M;
 }

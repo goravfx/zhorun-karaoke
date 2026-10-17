@@ -35,7 +35,18 @@ self.onmessage = async e => {
     catch (err) { self.postMessage({ type: "error", error: String(err && err.message || err) }); }
     return;
   }
+  if (m.type === "switch") {          // попробовать другой режим (видеокарта / процессор); старый работает, пока новый готовится
+    try {
+      const nf = await make(m.delegate);
+      nf.detectForVideo(new OffscreenCanvas(64, 64), ++lastTs);
+      const old = fl; fl = nf; delegate = m.delegate;
+      try { old && old.close(); } catch (e) {}
+    } catch (e) {}
+    self.postMessage({ type: "switched", delegate });
+    return;
+  }
   if (m.type === "frame") {
+    if (!fl) { try { m.bmp.close(); } catch (e) {} self.postMessage({ type: "result", id: m.id, lm: null, ms: 0, skip: true }); return; }
     const t0 = performance.now();
     let lm = null;
     try {
