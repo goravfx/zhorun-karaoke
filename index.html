@@ -166,6 +166,7 @@ button{cursor:pointer;background:none;border:0}
   .rotate{display:grid!important}
 }
 .rotate{display:none;position:fixed;inset:0;z-index:50;place-items:center;background:var(--black);text-align:center;padding:24px;font:400 24px/1.3 var(--display)}
+  .diag{font:500 12px/1.4 Onest,system-ui,sans-serif;color:rgba(242,232,213,.45);margin:10px 0 0;text-align:center}
 </style>
 </head>
 <body>
@@ -266,6 +267,7 @@ button{cursor:pointer;background:none;border:0}
       <button class="btn ghost" id="retake" type="button">Перепеть</button>
       <p class="fine">Выложи ролик в&nbsp;VK&nbsp;Клипы с&nbsp;хэштегом <span class="tag">#спойнастрапонском</span> и&nbsp;отметь группу «Жорун».</p>
       <p class="fine" id="result-note" hidden></p>
+      <p class="diag" id="result-diag" hidden></p>
     </div>
   </section>
 </main>
@@ -392,21 +394,21 @@ function pickLine(t){
 }
 
 /* ---------------- орнамент: шнур-бранденбур с мундира */
-function frog(cx, cy, scale, color, alpha = 1){
-  g.save();
-  g.translate(cx - 120 * scale, cy - 12 * scale);
-  g.scale(scale, scale);
-  g.globalAlpha *= alpha;
-  g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 1.6; g.lineCap = "round";
-  g.beginPath(); g.moveTo(30, 12); g.lineTo(83, 12); g.moveTo(157, 12); g.lineTo(210, 12); g.stroke();
-  g.beginPath(); g.ellipse(100, 12, 16, 6.5, 0, 0, Math.PI * 2); g.stroke();
-  g.beginPath(); g.ellipse(140, 12, 16, 6.5, 0, 0, Math.PI * 2); g.stroke();
-  g.beginPath(); g.arc(46, 12, 3, 0, Math.PI * 2); g.stroke();
-  g.beginPath(); g.arc(194, 12, 3, 0, Math.PI * 2); g.stroke();
-  g.beginPath(); g.arc(120, 12, 4.2, 0, Math.PI * 2); g.fill();
-  g.beginPath(); g.ellipse(22, 12, 8, 4, 0, 0, Math.PI * 2); g.fill();
-  g.beginPath(); g.ellipse(218, 12, 8, 4, 0, 0, Math.PI * 2); g.fill();
-  g.restore();
+function frog(cx, cy, scale, color, alpha = 1, x = g){
+  x.save();
+  x.translate(cx - 120 * scale, cy - 12 * scale);
+  x.scale(scale, scale);
+  x.globalAlpha *= alpha;
+  x.strokeStyle = color; x.fillStyle = color; x.lineWidth = 1.6; x.lineCap = "round";
+  x.beginPath(); x.moveTo(30, 12); x.lineTo(83, 12); x.moveTo(157, 12); x.lineTo(210, 12); x.stroke();
+  x.beginPath(); x.ellipse(100, 12, 16, 6.5, 0, 0, Math.PI * 2); x.stroke();
+  x.beginPath(); x.ellipse(140, 12, 16, 6.5, 0, 0, Math.PI * 2); x.stroke();
+  x.beginPath(); x.arc(46, 12, 3, 0, Math.PI * 2); x.stroke();
+  x.beginPath(); x.arc(194, 12, 3, 0, Math.PI * 2); x.stroke();
+  x.beginPath(); x.arc(120, 12, 4.2, 0, Math.PI * 2); x.fill();
+  x.beginPath(); x.ellipse(22, 12, 8, 4, 0, 0, Math.PI * 2); x.fill();
+  x.beginPath(); x.ellipse(218, 12, 8, 4, 0, 0, Math.PI * 2); x.fill();
+  x.restore();
 }
 
 /* ---------------- плёнка: тон, градиенты и зерно рисуются один раз */
@@ -549,8 +551,25 @@ function drawGrade(){
   g.drawImage(grainLayers[(grainFrame++ >> 1) % 3], 0, 0, W, H);
 }
 
+/* шапка и строки текста — заранее в картинки вместе с тенью: размытая тень на каждом кадре дорого стоит телефону */
+let HEADER = null;
+function fontsLoaded(...fs){ return !(document.fonts && document.fonts.check) || fs.every(f => document.fonts.check(f)); }
+function headerSprite(){
+  if (HEADER) return HEADER;
+  if (!fontsLoaded(lyricFont(44), lyricFont(25))) return null;
+  const c = document.createElement("canvas"); c.width = W; c.height = 200;
+  const x = c.getContext("2d");
+  x.shadowColor = "rgba(0,0,0,.7)"; x.shadowBlur = 10;
+  frog(W / 2, 64, 0.9, "#d9b45e", 1, x);
+  x.textAlign = "center"; x.textBaseline = "alphabetic";
+  x.fillStyle = "#e3c06a"; x.font = lyricFont(44); x.fillText("Жорун", W / 2, 128);
+  x.fillStyle = "rgba(242,232,213,.92)"; x.font = lyricFont(25); x.fillText("Мандалупа", W / 2, 166);
+  return (HEADER = c);
+}
 function drawHeader(t){
   const a = t < 0 ? 1 : (t < 6 ? 1 - 0.25 * (t / 6) : 0.75);
+  const sp = headerSprite();
+  if (sp) { g.save(); g.globalAlpha = a; g.drawImage(sp, 0, 0); g.restore(); return; }
   g.save();
   g.globalAlpha = a;
   g.shadowColor = "rgba(0,0,0,.7)"; g.shadowBlur = 10;
@@ -572,8 +591,47 @@ function lineFill(L, t){
   return fx;
 }
 
+const LINE_CACHE = new Map();
+function lineSprites(L){
+  let c = LINE_CACHE.get(L);
+  if (c) return c;
+  const size = LYR, font = lyricFont(size);
+  if (!fontsLoaded(font)) return null;
+  const pad = 34, asc = Math.ceil(size * 1.15), desc = Math.ceil(size * 0.45);
+  const w = Math.ceil(L.w) + pad * 2, h = asc + desc + pad * 2;
+  const mk = () => { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; return cv; };
+  const base = mk(), gold = mk();
+  let x = base.getContext("2d");
+  x.font = font; x.textAlign = "left"; x.textBaseline = "alphabetic";
+  x.shadowColor = "rgba(0,0,0,.85)"; x.shadowBlur = 16; x.shadowOffsetY = 2;
+  x.fillStyle = "#f2e8d5"; x.fillText(L.text, pad, pad + asc);
+  x = gold.getContext("2d");
+  x.font = font; x.textAlign = "left"; x.textBaseline = "alphabetic";
+  x.shadowColor = "rgba(243,207,107,.55)"; x.shadowBlur = 22;
+  const gr = x.createLinearGradient(0, pad + asc - size * 0.82, 0, pad + asc + size * 0.12);
+  gr.addColorStop(0, "#fff0bf"); gr.addColorStop(0.45, "#f3cf6b"); gr.addColorStop(1, "#b98a30");
+  x.fillStyle = gr; x.fillText(L.text, pad, pad + asc);
+  c = {base, gold, pad, asc};
+  LINE_CACHE.set(L, c);
+  if (LINE_CACHE.size > 6) LINE_CACHE.delete(LINE_CACHE.keys().next().value);   // держим только ближайшие строки
+  return c;
+}
 function drawLine(L, t, y, scale, alpha, filled){
   if (!L) return;
+  const sp = lineSprites(L);
+  if (sp) {
+    const size = LYR, x0 = -L.w / 2;
+    g.save();
+    g.translate(W / 2, y); g.scale(scale, scale);
+    g.globalAlpha = alpha;
+    g.drawImage(sp.base, x0 - sp.pad, -sp.pad - sp.asc);
+    if (filled) {
+      const fx = lineFill(L, t);
+      if (fx > 0.5) { g.beginPath(); g.rect(x0 - 6, -size * 1.15, fx + 6, size * 1.6); g.clip(); g.drawImage(sp.gold, x0 - sp.pad, -sp.pad - sp.asc); }
+    }
+    g.restore();
+    return;
+  }
   const size = LYR;
   g.save();
   g.translate(W / 2, y); g.scale(scale, scale);
@@ -870,8 +928,8 @@ function maskActive(){ return MASK.want !== "none" && !!MASK.obj && S.cam && S.m
 function loadMask(){
   if (MASK.obj || MASK.loading || MASK.unsupported) return MASK.loading;
   MASK.failed = false; MASK.progress = 0;
-  MASK.loading = import("./mask/mask.js?v=7")
-    .then(m => m.createMask({onProgress: p => { MASK.progress = p; updateMaskUI(); }}))
+  MASK.loading = import("./mask/mask.js?v=8")
+    .then(m => m.createMask({onProgress: p => { MASK.progress = p; updateMaskUI(); }, ...(PARAMS.has("ring") ? {ring: +PARAMS.get("ring"), maxDelay: +(PARAMS.get("maxdelay") || 240)} : {})}))
     .then(obj => { MASK.obj = obj; })
     .catch(e => {
       console.warn("mask", e); MASK.failed = true;
@@ -896,27 +954,37 @@ $("#masks").addEventListener("click", e => {
   if (MASK.want !== "none") loadMask();
   updateMaskUI();
 });
-/* с маской: на быстром телефоне на экран идёт тот кадр камеры, на котором нашли лицо (маска сидит идеально);
-   на медленном — живое видео, а маска «догоняет» голову по её скорости (иначе картинка рвётся) */
+/* с маской на экран идёт кадр камеры чуть из прошлого — тот, для которого лицо уже найдено,
+   а маска между найденными кадрами доводится плавно: картинка и маска всегда вместе (как в Instagram) */
 function camFrame(){
   const m = MASK.obj;
-  if (maskActive() && m.sync && m.frame && performance.now() - m.lastResult < 400) return {src: m.frame, w: m.frameW, h: m.frameH, live: false};
-  return {src: camVideo, w: camVideo.videoWidth, h: camVideo.videoHeight, live: true};
+  if (maskActive() && m.ready) { const f = m.frameFor(performance.now()); if (f) return f; }
+  return {src: camVideo, w: camVideo.videoWidth, h: camVideo.videoHeight, t: null};
 }
 function drawMask(f){
   const k = Math.max(W / f.w, H / f.h);
   const t0 = performance.now();
-  MASK.obj.draw(g, {dx: (W - f.w * k) / 2, dy: (H - f.h * k) / 2, k, W, H, mirror: S.facing === "user", live: f.live});
+  MASK.obj.draw(g, {dx: (W - f.w * k) / 2, dy: (H - f.h * k) / 2, k, W, H, mirror: S.facing === "user"}, 1, f.t);
   PERF.mask = PERF.mask * 0.9 + (performance.now() - t0) * 0.1;
 }
+/* цифры дубля на экране результата — по ним видно, где тормозит на конкретном телефоне */
+function showDiag(){
+  const el = $("#result-diag"), T = PERF.take;
+  if (!el || !T || !T.t1) { if (el) el.hidden = true; return; }
+  const med = a => { if (!a.length) return 0; const b = a.slice().sort((x, y) => x - y); return b[b.length >> 1]; };
+  const sec = ((T.f1 || 0) - (T.f0 || 0)) / 1000, fps = T.frames > 1 && sec > 0 ? (T.frames - 1) / sec : 0, m = MASK.obj;
+  let txt = `Для разбора: ${fps.toFixed(0)} к/с, кадр ${(T.ms / Math.max(1, T.frames)).toFixed(0)} мс, камера ${camVideo.videoWidth}×${camVideo.videoHeight}`;
+  if (maskActive() && m) txt += `; маска: ${m.kind}/${m.delegate}, поиск ${med(T.det).toFixed(0)} мс, ${med(T.rate).toFixed(0)} раз/с, картинка позже на ${T.delay.toFixed(0)} мс`;
+  el.textContent = txt; el.hidden = false;
+}
 /* ?debug — цифры для разбора тормозов на конкретном телефоне */
-const PERF = {fps: 0, ms: 0, mask: 0, last: 0};
+const PERF = {fps: 0, ms: 0, mask: 0, last: 0, take: null};
 function drawPerf(){
   if (!PARAMS.has("debug")) return;
   const m = MASK.obj, lines = [`кадров ${PERF.fps.toFixed(0)}/с, кадр ${PERF.ms.toFixed(1)} мс, маска ${PERF.mask.toFixed(1)} мс`,
     `камера ${camVideo.videoWidth}×${camVideo.videoHeight}`];
   if (m) lines.push(`${m.kind}/${m.delegate}: поиск ${m.detMs.toFixed(0)} мс (+кадр ${(m.bmpMs || 0).toFixed(0)}), ${m.rate.toFixed(0)}/с, задержка ${m.latency.toFixed(0)} мс`,
-    `${m.sync ? "кадр с маской" : "живое видео + догон"}, ${m.found ? "лицо есть" : "нет лица"}`);
+    `картинка позже на ${m.delay.toFixed(0)} мс, ${m.found ? "лицо есть" : "нет лица"}`);
   g.save(); g.font = "600 21px Onest, sans-serif"; g.textAlign = "left"; g.textBaseline = "alphabetic"; g.shadowBlur = 0;
   g.fillStyle = "rgba(0,0,0,.62)"; g.fillRect(12, 150, 520, 14 + lines.length * 28);
   g.fillStyle = "#fff"; lines.forEach((l, i) => g.fillText(l, 22, 178 + i * 28)); g.restore();
@@ -1059,6 +1127,11 @@ function loop(){
   drawPerf();
   const p1 = performance.now();
   PERF.ms = PERF.ms * 0.9 + (p1 - p0) * 0.1;
+  if (PERF.take && (S.phase === "live" || S.phase === "countdown")) {
+    if (!PERF.take.f0) PERF.take.f0 = p0;
+    PERF.take.f1 = p0; PERF.take.frames++; PERF.take.ms += p1 - p0;
+    if (maskActive() && PERF.take.frames % 15 === 0) { PERF.take.det.push(MASK.obj.detMs); PERF.take.rate.push(MASK.obj.rate); }
+  }
   if (PERF.last) PERF.fps = PERF.fps * 0.9 + 1000 / Math.max(1, p0 - PERF.last) * 0.1;
   PERF.last = p0;
   if (S.phase === "preview" && S.mode === "record" && tau - lastMeter > 0.06) {
@@ -1104,7 +1177,9 @@ async function startTake(){
   const mime = pickMime();
   if (!mime || !$("#cv").captureStream) { S.phase = "preview"; AE.stop(); toast("Этот браузер не умеет записывать видео. Открой страницу в Safari или Chrome. Порепетировать можно и здесь."); enterPreview(); return; }
   S.mime = mime;
-  AE.nodes.vsync.delayTime.value = maskActive() && MASK.obj.sync ? Math.max(0, Math.min(0.1, MASK.obj.latency / 1000)) : 0;
+  if (maskActive()) { MASK.obj.frozen = true; MASK.obj.busy = true; }
+  AE.nodes.vsync.delayTime.value = maskActive() && MASK.obj.ready ? Math.max(0, Math.min(0.25, MASK.obj.delay / 1000)) : 0;
+  PERF.take = {t0: performance.now(), frames: 0, ms: 0, det: [], rate: [], delay: maskActive() ? MASK.obj.delay : 0};
   const vstream = $("#cv").captureStream(30);
   const astream = AE.nodes.dest.stream;
   const mixed = new MediaStream([...vstream.getVideoTracks(), ...astream.getAudioTracks()]);
@@ -1157,6 +1232,8 @@ function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = f
 async function finishTake(){
   if (S.phase === "done") return;
   S.phase = "done";
+  if (MASK.obj) { MASK.obj.frozen = false; MASK.obj.busy = false; }
+  if (PERF.take) PERF.take.t1 = performance.now();
   cancelAnimationFrame(raf);
   AE.stop();
   BG.stop();
@@ -1195,6 +1272,7 @@ async function finishTake(){
   if (ext === "webm") { note.hidden = false; note.textContent = "Ролик сохранится в формате WebM. VK его принимает; если какое-то приложение не откроет файл, перепиши ролик в Safari или Chrome на телефоне."; }
   else note.hidden = true;
   window.__lastTake = {size: S.blob.size, type, ext};
+  showDiag();
   show("result");
 }
 

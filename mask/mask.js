@@ -6,7 +6,7 @@
 import { CANON_V, CANON_F, CANON_UV } from "./face-canon.js";
 
 const BASE = new URL("./", import.meta.url).href;
-const VQ = "?v=7";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
+const VQ = "?v=8";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
 const DEG = Math.PI / 180;
 
 /* ---------------- математика */
@@ -152,7 +152,7 @@ export class Smoother {
     return { lm: this.out, pose: { s: F.s, R, t: F.t.slice(), q: F.q.slice() } };
   }
 }
-Smoother.POSE_MIN = 1.5; Smoother.POSE_BETA = 0.5; Smoother.DEF_MIN = 3.0; Smoother.DEF_BETA = 1.0;
+Smoother.POSE_MIN = 1.5; Smoother.POSE_BETA = 1.4; Smoother.DEF_MIN = 3.0; Smoother.DEF_BETA = 1.6;   // в движении фильтр почти не тормозит: картинка и так «из прошлого»
 
 /* ---------------- WebGL */
 const VHEAD = `#version 300 es
@@ -490,12 +490,14 @@ async function makeTracker(mode, delegate, onProgress, useWorker){
   const loader = BASE + `mp/wasm/${name}.js`;
   // на iPhone GPU-режим MediaPipe нестабилен — там считаем на процессоре
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const want = delegate || (ios ? "CPU" : "GPU");
+  // процессор (XNNPACK) по умолчанию: заводится быстро и одинаково везде; видеокарту пробуем потом, в превью
+  const want = delegate || "CPU";
   if (useWorker && mode === "VIDEO" && typeof Worker !== "undefined" && typeof OffscreenCanvas !== "undefined" && typeof createImageBitmap === "function") {
+    let w = null;
     try {
-      const w = new Worker(BASE + "track-worker.js" + VQ);
+      w = new Worker(BASE + "track-worker.js" + VQ);
       const ready = await new Promise((res, rej) => {
-        const to = setTimeout(() => rej(new Error("worker timeout")), 60000);   // медленный телефон честно грузит дольше — не бросаем поток раньше времени
+        const to = setTimeout(() => rej(new Error("worker timeout")), 90000);   // медленный телефон честно грузит дольше — не бросаем поток раньше времени
         w.onmessage = e => { if (e.data.type === "ready") { clearTimeout(to); res(e.data); } else if (e.data.type === "error") { clearTimeout(to); rej(new Error(e.data.error)); } };
         w.onerror = e => { clearTimeout(to); rej(new Error(e.message || "worker error")); };
         const mcopy = model.slice().buffer;
@@ -503,7 +505,7 @@ async function makeTracker(mode, delegate, onProgress, useWorker){
       });
       w.onerror = null;
       return { kind: "worker", worker: w, delegate: ready.delegate, ios };
-    } catch (e) { console.warn("mask: worker failed, using main thread", e); }
+    } catch (e) { console.warn("mask: worker failed, using main thread", e); try { w && w.terminate(); } catch (e2) {} }
   }
   const files = { wasmLoaderPath: loader, wasmBinaryPath: wasmUrl };
   const make = d => FaceLandmarker.createFromOptions(files, {
@@ -517,7 +519,7 @@ async function makeTracker(mode, delegate, onProgress, useWorker){
 }
 
 /* ---------------- снаружи */
-export async function createMask({ mode = "VIDEO", delegate = null, debug = false, onProgress = null, worker = true, fresh = true } = {}){
+export async function createMask({ mode = "VIDEO", delegate = null, debug = false, onProgress = null, worker = true, fresh = true, ring: ringSize = 8, maxDelay = 240 } = {}){
   const [projImg, proj, hair, decal, burnImg, burns, shell, tris] = await Promise.all([
     loadImage(BASE + "zhorun/proj.webp" + VQ), fetchBytes(BASE + "zhorun/proj.bin" + VQ),
     loadImage(BASE + "zhorun/hair.webp" + VQ), loadImage(BASE + "zhorun/decal.webp" + VQ), loadImage(BASE + "zhorun/burns.webp" + VQ), fetchBytes(BASE + "zhorun/burns.bin" + VQ),
@@ -529,63 +531,93 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
   const lum = document.createElement("canvas"); lum.width = lum.height = 8;
   const lg = lum.getContext("2d", { willReadFrequently: true });
   const small = document.createElement("canvas"), sg = small.getContext("2d");
-  const holds = [0, 1].map(() => { const c = document.createElement("canvas"); return { c, g: c.getContext("2d") }; });
-  let holdIdx = 0, seq = 0;
+  // кольцо последних кадров камеры: на экран идёт кадр чуть из прошлого — тот, для которого лицо уже найдено,
+  // а маска между найденными кадрами плавно доводится (как в масках Instagram: картинка и маска всегда вместе)
+  const RING = Math.max(4, ringSize | 0), HIST = 12;
+  const ring = Array.from({ length: RING }, () => { const c = document.createElement("canvas"); return { c, g: c.getContext("2d"), t: -1, w: 0, h: 0 }; });
+  let ringN = 0, seq = 0;
+  const lerpBuf = new Float32Array(478 * 3);
+  function lerpPose(a, b, w){
+    let q = b.q; if (a.q[0] * q[0] + a.q[1] * q[1] + a.q[2] * q[2] + a.q[3] * q[3] < 0) q = q.map(x => -x);
+    const qq = [0, 1, 2, 3].map(k => a.q[k] + (q[k] - a.q[k]) * w), ql = Math.hypot(...qq);
+    for (let k = 0; k < 4; k++) qq[k] /= ql;
+    for (let i = 0; i < 478 * 3; i++) lerpBuf[i] = a.lm[i] + (b.lm[i] - a.lm[i]) * w;
+    return { s: a.s + (b.s - a.s) * w, q: qq, R: quatToR(qq), t: [0, 1, 2].map(k => a.tt[k] + (b.tt[k] - a.tt[k]) * w), lm: lerpBuf };
+  }
 
   const M = {
     raw, get delegate(){ return tr.delegate; }, kind: tr.kind, stats: r.stats,
     found: false, vis: 0, exposure: 1, pose: null, lm: null, srcW: 0, srcH: 0, miss: 0,
-    frame: null, frameW: 0, frameH: 0, latency: 0, detMs: 0, results: 0, lastResult: 0, inflight: null,
-    rate: 0, sync: false, vel: null, tCap: 0, _prev: null,
-    _ingest(lmNorm, W, H, nowMs, smooth){
+    latency: 0, detMs: 0, results: 0, lastResult: 0, inflight: null, rate: 0, bmpMs: 0,
+    delay: 90, frozen: false, busy: false, hist: [], sent: -1,
+    get ready(){ return ringN > 0; },
+    _ingest(lmNorm, W, H, tMs, smooth){
       this.srcW = W; this.srcH = H;
       for (let i = 0; i < 478; i++) { raw[i * 3] = lmNorm[i * 3] * W; raw[i * 3 + 1] = lmNorm[i * 3 + 1] * H; raw[i * 3 + 2] = lmNorm[i * 3 + 2] * W; }
-      const o = sm.apply(raw, nowMs / 1000, smooth);
+      const o = sm.apply(raw, tMs / 1000, smooth);
       this.lm = o.lm; this.pose = o.pose;
-      // скорость головы — чтобы на живом видео «довести» маску до текущего момента
-      const pv = this._prev, P = this.pose;
-      if (smooth && pv && nowMs - pv.t > 5 && nowMs - pv.t < 300) {
-        const dt = (nowMs - pv.t) / 1000;
-        let q = P.q; if (q[0] * pv.q[0] + q[1] * pv.q[1] + q[2] * pv.q[2] + q[3] * pv.q[3] < 0) q = q.map(x => -x);
-        const nv = { t: [0, 1, 2].map(k => (P.t[k] - pv.tt[k]) / dt), s: (P.s / pv.s - 1) / dt, q: [0, 1, 2, 3].map(k => (q[k] - pv.q[k]) / dt) };
-        const v = this.vel;
-        this.vel = v ? { t: v.t.map((x, k) => x * 0.4 + nv.t[k] * 0.6), s: v.s * 0.4 + nv.s * 0.6, q: v.q.map((x, k) => x * 0.4 + nv.q[k] * 0.6) } : nv;
-      } else this.vel = null;
-      this._prev = { t: nowMs, tt: P.t.slice(), s: P.s, q: P.q.slice() };
-      this.tCap = nowMs;
       this.found = true; this.miss = 0;
+      if (smooth) {
+        const h = this.hist;
+        h.push({ t: tMs, s: o.pose.s, q: o.pose.q.slice(), tt: o.pose.t.slice(), lm: o.lm.slice() });
+        if (h.length > HIST) h.shift();
+      }
     },
-    _lost(){ if (++this.miss > 3) { this.found = false; sm.reset(); this.vel = null; this._prev = null; } },
-    // кадр камеры → в поиск лица (в отдельном потоке; результат придёт сам)
+    _lost(){ if (++this.miss > 3) { this.found = false; sm.reset(); this.hist.length = 0; } },
+    // новый кадр камеры → в кольцо
+    _grab(video, t){
+      const vw = video.videoWidth, vh = video.videoHeight;
+      if (!vw || !vh) return;
+      const k = Math.min(1, 1280 / Math.max(vw, vh)), w = Math.round(vw * k), h = Math.round(vh * k);
+      const sl = ring[ringN % RING];
+      if (sl.c.width !== w || sl.c.height !== h) { sl.c.width = w; sl.c.height = h; }
+      sl.g.drawImage(video, 0, 0, w, h);
+      sl.t = t; sl.w = w; sl.h = h;
+      ringN++;
+    },
+    _hook(video){
+      if (this._rv === video) return;
+      this._rv = video; this._rvfc = false;
+      if (fresh && video.requestVideoFrameCallback) {
+        this._rvfc = true;
+        const cb = now => {
+          if (this._rv !== video) return;
+          if (video.readyState >= 2 && performance.now() - this._pumpAt < 600) { this._grab(video, now); this._send(video); }
+          video.requestVideoFrameCallback(cb);
+        };
+        video.requestVideoFrameCallback(cb);
+      }
+    },
+    // вызывается каждый кадр отрисовки
     pump(video, now = performance.now()){
       if (!video || video.readyState < 2 || !video.videoWidth) return;
-      this._vid = video;
-      if (this.inflight) { if (now - this.inflight.t0 > 1500) { this.inflight = null; this.frame = null; } return; }
-      if (!this._fresh(video, now)) return;
-      const vw = video.videoWidth, vh = video.videoHeight;
-      const kk = Math.min(1, 480 / Math.max(vw, vh)), sw = Math.round(vw * kk), sh = Math.round(vh * kk);
-      const id = ++seq, ts = Math.round(now);
-      // быстрый телефон: держим кадр и показываем его вместе с маской (идеальное совпадение);
-      // медленный: показываем живое видео, а маску «доводим» по скорости головы
-      let hold = null;
-      if (this.sync) {
-        hold = holds[holdIdx]; holdIdx ^= 1;
-        if (hold.c.width !== vw || hold.c.height !== vh) { hold.c.width = vw; hold.c.height = vh; }
-        hold.g.drawImage(video, 0, 0, vw, vh);
-      }
-      this.inflight = { id, t0: now, hold, vw, vh };
-      const src = hold ? hold.c : video;
+      this._pumpAt = now;
+      this._hook(video);
+      if (!this._rvfc && video.currentTime !== this._ct) { this._ct = video.currentTime; this._grab(video, now); }
+      if (this.inflight && now - this.inflight.t0 > 1500) this.inflight = null;
+      this._send();
+    },
+    // самый свежий кадр — в поиск лица (по одному: пока ищем, свежие кадры копятся в кольце)
+    _send(fromVideo = null){
+      if (this.inflight || !ringN) return;
+      const n = ringN - 1;
+      if (n === this.sent) return;
+      this.sent = n;
+      const sl = ring[n % RING], id = ++seq, now = performance.now();
+      const kk = Math.min(1, 480 / Math.max(sl.w, sl.h)), sw = Math.round(sl.w * kk), sh = Math.round(sl.h * kk);
+      this.inflight = { id, t0: now, t: sl.t, slot: sl, vw: sl.w, vh: sl.h };
       if (tr.kind === "worker") {
-        const send = bmp => { const d = performance.now() - now; this.bmpMs = this.bmpMs ? this.bmpMs * 0.9 + d * 0.1 : d; tr.worker.postMessage({ type: "frame", id, ts, bmp }, [bmp]); };
-        const viaCanvas = () => { if (small.width !== sw || small.height !== sh) { small.width = sw; small.height = sh; } sg.drawImage(src, 0, 0, sw, sh); return createImageBitmap(small); };
+        const post = bmp => { const d = performance.now() - now; this.bmpMs = this.bmpMs ? this.bmpMs * 0.9 + d * 0.1 : d; tr.worker.postMessage({ type: "frame", id, ts: Math.round(sl.t), bmp }, [bmp]); };
+        const viaCanvas = () => { if (small.width !== sw || small.height !== sh) { small.width = sw; small.height = sh; } sg.drawImage(sl.c, 0, 0, sw, sh); return createImageBitmap(small); };
+        const src = fromVideo || sl.c;
         (this._resizeOK !== false ? createImageBitmap(src, { resizeWidth: sw, resizeHeight: sh, resizeQuality: "low" }).catch(() => { this._resizeOK = false; return viaCanvas(); }) : viaCanvas())
-          .then(send).catch(() => { this.inflight = null; });
+          .then(post).catch(() => { this.inflight = null; });
       } else {
         if (small.width !== sw || small.height !== sh) { small.width = sw; small.height = sh; }
-        sg.drawImage(src, 0, 0, sw, sh);
+        sg.drawImage(sl.c, 0, 0, sw, sh);
         const t0 = performance.now();
         let res = null;
-        try { res = tr.fl.detectForVideo(small, ts); } catch (e) { console.warn("mask: detect", e); }
+        try { res = tr.fl.detectForVideo(small, Math.round(sl.t)); } catch (e) { console.warn("mask: detect", e); }
         const f = res && res.faceLandmarks && res.faceLandmarks[0];
         let lm = null;
         if (f) { lm = new Float32Array(f.length * 3); for (let i = 0; i < f.length; i++) { lm[i * 3] = f[i].x; lm[i * 3 + 1] = f[i].y; lm[i * 3 + 2] = f[i].z; } }
@@ -596,27 +628,68 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
       const f = this.inflight;
       if (!f || f.id !== id) return;
       this.inflight = null;
-      if (skip) return;
-      const now = performance.now();
-      this.frame = f.hold ? f.hold.c : null; this.frameW = f.vw; this.frameH = f.vh;
-      // медианы по последним кадрам: первые (прогрев) и случайные долгие кадры не сбивают решения
-      const H = this._hist || (this._hist = { lat: [], det: [], at: [] });
-      const push = (a, v) => { a.push(v); if (a.length > 15) a.shift(); };
-      push(H.lat, now - f.t0); push(H.det, ms); push(H.at, now);
-      const med = a => { const b = a.slice().sort((x, y) => x - y); return b[b.length >> 1]; };
-      this.latency = med(H.lat); this.detMs = med(H.det);
-      this.rate = H.at.length > 2 ? (H.at.length - 1) * 1000 / Math.max(1, now - H.at[0]) : 0;
-      this.results++; this._sinceSwitch = (this._sinceSwitch || 0) + 1;
-      this.lastResult = now;
-      // держать кадр стоит, только если поиск быстрый; с запасом, чтобы режим не мигал туда-сюда
-      if (this.results > 10) this.sync = this.sync ? (this.latency < 58 && this.rate > 18) : (this.latency < 42 && this.rate > 24);
-      if (lm) { this._ingest(lm, f.vw, f.vh, f.t0, true); if (this.results % 15 === 1) this._light(f.hold ? f.hold.c : this._vid || null); }
-      else this._lost();
-      this._tune();
+      if (!skip) {
+        const now = performance.now();
+        // медианы по последним кадрам: прогрев и случайные долгие кадры не сбивают решения
+        const H = this._st || (this._st = { lat: [], det: [], at: [], gap: [] });
+        const push = (a, v) => { a.push(v); if (a.length > 20) a.shift(); };
+        push(H.lat, now - f.t); push(H.det, ms); push(H.at, now);
+        if (this._lastT != null) push(H.gap, f.t - this._lastT);
+        this._lastT = f.t;
+        const med = a => { const b = a.slice().sort((x, y) => x - y); return b[b.length >> 1]; };
+        this.latency = med(H.lat); this.detMs = med(H.det);
+        this.rate = H.at.length > 2 ? (H.at.length - 1) * 1000 / Math.max(1, now - H.at[0]) : 0;
+        this.results++; this._sinceSwitch = (this._sinceSwitch || 0) + 1;
+        this.lastResult = now;
+        if (lm) { this._ingest(lm, f.vw, f.vh, f.t, true); if (this.results % 15 === 1) this._light(f.slot.c); }
+        else this._lost();
+        this._adapt();
+        this._tune();
+      }
+      this._send();     // сразу следующий кадр: поиск лица не простаивает
+    },
+    // насколько показывать картинку «из прошлого»: чтобы для показанного кадра лицо уже было найдено
+    _adapt(){
+      const H = this._st;
+      if (this.frozen || !H || H.lat.length < 4) return;
+      const pq = (a, q) => { const b = a.slice().sort((x, y) => x - y); return b[Math.min(b.length - 1, Math.floor(b.length * q))]; };
+      const target = clamp(pq(H.lat, 0.8) + 0.6 * (H.gap.length ? pq(H.gap, 0.8) : 33) + 10, 45, maxDelay);
+      this.delay += (target - this.delay) * (target > this.delay ? 0.3 : 0.04);
+    },
+    // кадр для экрана: на delay мс раньше «сейчас»
+    frameFor(now){
+      if (!ringN) return null;
+      const target = now - this.delay;
+      let best = null, oldest = null;
+      for (let i = Math.max(0, ringN - RING); i < ringN; i++) {
+        const sl = ring[i % RING];
+        if (!oldest || sl.t < oldest.t) oldest = sl;
+        if (sl.t <= target && (!best || sl.t > best.t)) best = sl;
+      }
+      const sl = best || oldest;
+      return { src: sl.c, w: sl.w, h: sl.h, t: sl.t };
+    },
+    // поза и точки лица на момент кадра t: между двумя найденными — плавно, после последнего — чуть вперёд
+    _poseAt(t){
+      const h = this.hist;
+      if (!h.length) return null;
+      let i = h.length - 1;
+      if (t >= h[i].t) {
+        if (i > 0) {
+          const a = h[i - 1], b = h[i], dt = b.t - a.t, ex = Math.min(t - b.t, 70, dt) * 0.8;
+          if (dt > 5 && ex > 1) return lerpPose(a, b, 1 + ex / dt);
+        }
+        const b = h[i];
+        return { s: b.s, q: b.q, R: quatToR(b.q), t: b.tt, lm: b.lm };
+      }
+      while (i > 0 && h[i - 1].t > t) i--;
+      if (i === 0) { const a = h[0]; return { s: a.s, q: a.q, R: quatToR(a.q), t: a.tt, lm: a.lm }; }
+      const a = h[i - 1], b = h[i];
+      return lerpPose(a, b, (t - a.t) / Math.max(1, b.t - a.t));
     },
     // на Android пробуем и видеокарту, и процессор: оставляем то, что быстрее на этом телефоне
     _tune(){
-      if (tr.kind !== "worker" || this._tuneDone || tr.ios) return;
+      if (tr.kind !== "worker" || this._tuneDone || tr.ios || this.busy || !this.allowGpuTrial) return;
       if (this._switching || this._sinceSwitch < 12) return;
       if (!this._trial) {
         if (this.detMs <= 26) { if (this.results > 40) this._tuneDone = true; return; }
@@ -630,17 +703,6 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
         }
         this._tuneDone = true;
       }
-    },
-    _fresh(video, now){
-      if (!fresh || !video.requestVideoFrameCallback) return true;
-      if (this._rv !== video) {
-        this._rv = video; this._new = true; this._seen = now;
-        const cb = () => { this._new = true; this._seen = performance.now(); if (this._rv === video) video.requestVideoFrameCallback(cb); };
-        video.requestVideoFrameCallback(cb);
-      }
-      if (!this._new && now - this._seen < 250) return false;
-      this._new = false;
-      return true;
     },
     _light(src){
       if (!src) return;
@@ -666,29 +728,12 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
       this.vis = 1;
       return true;
     },
-    // поза «на сейчас»: от кадра, где нашли лицо, до живого кадра на экране голова успела сдвинуться
-    _predict(now){
-      const P = this.pose, v = this.vel;
-      if (!P || !v) return null;
-      const dt = clamp((now - this.tCap) / 1000, 0, 0.12) * 0.85;
-      if (dt < 0.002) return null;
-      const t = [P.t[0] + v.t[0] * dt, P.t[1] + v.t[1] * dt, P.t[2] + v.t[2] * dt];
-      const s = P.s * (1 + clamp(v.s * dt, -0.1, 0.1));
-      const q = P.q.map((x, k) => x + v.q[k] * dt), ql = Math.hypot(...q);
-      for (let k = 0; k < 4; k++) q[k] /= ql;
-      const R = quatToR(q), L = this.lm, out = this._plm || (this._plm = new Float32Array(478 * 3)), ks = s / P.s;
-      for (let i = 0; i < 478; i++) {
-        const d = RTmul(P.R, [L[i * 3] - P.t[0], L[i * 3 + 1] - P.t[1], L[i * 3 + 2] - P.t[2]]), e = Rmul(R, d);
-        out[i * 3] = e[0] * ks + t[0]; out[i * 3 + 1] = e[1] * ks + t[1]; out[i * 3 + 2] = e[2] * ks + t[2];
-      }
-      return { pose: { s, R, t, q }, lm: out };
-    },
     // view: как кадр лёг на холст (как coverDraw): dx, dy, k — пикселей холста на пиксель кадра; live — поверх живого видео
-    draw(g, view, alpha = 1){
-      this.vis += ((this.found ? 1 : 0) - this.vis) * 0.4;
-      if (this.vis < 0.02 || !this.pose) return;
-      const pr = view.live ? this._predict(performance.now()) : null;
-      const pose = pr ? pr.pose : this.pose, lm = pr ? pr.lm : this.lm;
+    draw(g, view, alpha = 1, tFrame = null){
+      const P = tFrame != null && this.hist.length ? this._poseAt(tFrame) : (this.pose ? { s: this.pose.s, q: this.pose.q, R: this.pose.R, t: this.pose.t, lm: this.lm } : null);
+      this.vis += ((this.found && P ? 1 : 0) - this.vis) * 0.4;
+      if (this.vis < 0.02 || !P) return;
+      const pose = { s: P.s, R: P.R, t: P.t, q: P.q }, lm = P.lm;
       r.upload(lm);
       const box = r.bbox(pose, view, lm);
       if (box[2] < 2 || box[3] < 2) return;
@@ -744,7 +789,7 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
     if (d.type === "result") M._result(d.id, d.lm, d.ms, d.skip);
     else if (d.type === "switched") {
       M._switching = false;
-      if (d.delegate !== tr.delegate) { tr.delegate = d.delegate; M._sinceSwitch = 0; if (M._hist) { M._hist.det.length = 0; M._hist.lat.length = 0; M._hist.at.length = 0; } }
+      if (d.delegate !== tr.delegate) { tr.delegate = d.delegate; M._sinceSwitch = 0; if (M._st) for (const k of Object.keys(M._st)) M._st[k].length = 0; }
       else if (M._trial && !M._tuneDone) M._tuneDone = true;   // другой режим не завёлся — остаёмся
     }
   };
