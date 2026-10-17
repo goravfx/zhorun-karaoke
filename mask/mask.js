@@ -495,7 +495,7 @@ async function makeTracker(mode, delegate, onProgress, useWorker){
     try {
       const w = new Worker(BASE + "track-worker.js" + VQ);
       const ready = await new Promise((res, rej) => {
-        const to = setTimeout(() => rej(new Error("worker timeout")), 25000);
+        const to = setTimeout(() => rej(new Error("worker timeout")), 60000);   // медленный телефон честно грузит дольше — не бросаем поток раньше времени
         w.onmessage = e => { if (e.data.type === "ready") { clearTimeout(to); res(e.data); } else if (e.data.type === "error") { clearTimeout(to); rej(new Error(e.data.error)); } };
         w.onerror = e => { clearTimeout(to); rej(new Error(e.message || "worker error")); };
         const mcopy = model.slice().buffer;
