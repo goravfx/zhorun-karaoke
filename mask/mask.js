@@ -6,7 +6,7 @@
 import { CANON_V, CANON_F, CANON_UV } from "./face-canon.js";
 
 const BASE = new URL("./", import.meta.url).href;
-const VQ = "?v=4";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
+const VQ = "?v=5";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
 const DEG = Math.PI / 180;
 
 /* ---------------- математика */
@@ -164,8 +164,9 @@ vec4 clipOf(vec3 P){ vec2 c = u_view.xy + P.xy * u_view.z; return vec4(c.x / u_c
 `;
 const VS_RIGID = VHEAD + `
 layout(location=0) in vec3 a_p; layout(location=1) in vec3 a_n; layout(location=2) in vec2 a_uv; layout(location=3) in float a_a; layout(location=4) in vec3 a_t;
+uniform vec3 u_K; uniform vec3 u_B;
 out vec2 v_uv; out float v_a; out vec3 v_n; out vec3 v_t;
-void main(){ vec3 P = u_s * (u_R * a_p) + u_t; v_n = u_R * a_n; v_t = u_R * a_t; v_uv = a_uv; v_a = a_a; gl_Position = clipOf(P); }`;
+void main(){ vec3 P = u_s * (u_R * (a_p * u_K + u_B)) + u_t; v_n = u_R * a_n; v_t = u_R * a_t; v_uv = a_uv; v_a = a_a; gl_Position = clipOf(P); }`;
 const VS_BOUND = VHEAD + `
 layout(location=1) in vec3 a_n; layout(location=2) in vec2 a_uv; layout(location=3) in float a_off; layout(location=5) in uint a_i;
 uniform float u_off;
@@ -176,6 +177,22 @@ const VS_STRIP = VHEAD + `
 layout(location=1) in vec3 a_n; layout(location=2) in vec2 a_uv; layout(location=4) in vec3 a_d; layout(location=5) in uvec2 a_ii; layout(location=6) in float a_w;
 out vec2 v_uv; out float v_a; out vec3 v_n;
 void main(){ vec3 N = normalize(u_R * a_n); vec3 P = mix(lm(a_ii.x), lm(a_ii.y), a_w) + (u_R * a_d) * u_s; v_n = N; v_uv = a_uv; v_a = 1.0; gl_Position = clipOf(P); }`;
+// кок «2.5D»: фото анфас на объёме причёски; u_K/u_B подгоняют кок Жоруна под лоб и виски человека
+const VS_PROJ = VHEAD + `
+layout(location=0) in vec3 a_p; layout(location=2) in vec2 a_uv; layout(location=3) in float a_tw; layout(location=4) in vec3 a_td;
+layout(location=5) in uvec3 a_ti; layout(location=6) in vec3 a_tb;
+uniform vec3 u_K; uniform vec3 u_B;
+out vec2 v_uv;
+void main(){
+  vec3 Pr = u_s * (u_R * (a_p * u_K + u_B)) + u_t;                                   // объём кока — вместе с головой
+  vec3 Pf = a_tb.x * lm(a_ti.x) + a_tb.y * lm(a_ti.y) + a_tb.z * lm(a_ti.z) + u_s * (u_R * a_td);   // у лба — на коже лба
+  v_uv = a_uv; gl_Position = clipOf(mix(Pr, Pf, a_tw));
+}`;
+const FS_PROJ = `#version 300 es
+precision highp float;
+uniform sampler2D u_tex; uniform float u_exp;
+in vec2 v_uv; out vec4 o;
+void main(){ vec4 c = texture(u_tex, v_uv); if (c.a < 0.004) discard; o = vec4(c.rgb * u_exp, c.a); }`;
 const FS_DEPTH = `#version 300 es
 precision mediump float; out vec4 o; void main(){ o = vec4(0.0); }`;
 const FS_GRAY = `#version 300 es
@@ -293,6 +310,7 @@ class Renderer {
     this.pShell = program(gl, VS_RIGID, FS_SHELL);
     this.pDecal = program(gl, VS_BOUND, FS_DECAL);
     this.pStrip = program(gl, VS_STRIP, FS_DECAL);
+    this.pProj = program(gl, VS_PROJ, FS_PROJ);
     this.lmTex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, this.lmTex);
     gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA32F, 478, 1);
@@ -301,6 +319,7 @@ class Renderer {
     this.hairTex = texture(gl, assets.hair);
     this.decalTex = texture(gl, assets.decal);
     this.burnTex = texture(gl, assets.burnImg, true);
+    this.projTex = texture(gl, assets.projImg, true);
 
     // оболочка кока из сетки радиусов (λ шаг 360/NL, μ от 12° шаг 2.5°)
     const dv = new DataView(assets.shell.buffer, assets.shell.byteOffset, assets.shell.byteLength);
@@ -308,7 +327,11 @@ class Renderer {
     const r = j => dv.getUint16(4 + j * 2, true) / 1000, va = j => assets.shell[4 + NL * NM * 2 + j] / 255;
     const cols = NL + 1, LS = 360 / NL;
     const P = new Float32Array(NM * cols * 3), A = new Float32Array(NM * cols), UVs = new Float32Array(NM * cols * 2);
-    const grid = (j, i) => { const ii = ((i % NL) + NL) % NL, jj = clamp(j, 0, NM - 1); const d = dirLM(-180 + ii * LS, Math.min(179.8, 12 + jj * 2.5)); return add(HC, mul(d, r(jj * NL + ii))); };
+    const grid = (j, i) => {
+      const ii = ((i % NL) + NL) % NL, jj = clamp(j, 0, NM - 1), d = dirLM(-180 + ii * LS, Math.min(179.8, 12 + jj * 2.5));
+      const r0 = 1 / Math.hypot(d[0] / HA[0], d[1] / HA[1], d[2] / HA[2]), rr = r(jj * NL + ii);
+      return add(HC, mul(d, Math.max(r0 + 0.25, rr - 0.55)));   // объём сзади и по бокам чуть меньше фото: спереди край — пряди с фото
+    };
     for (let j = 0; j < NM; j++) for (let i = 0; i < cols; i++) {
       const k = j * cols + i;
       P.set(grid(j, i), k * 3); A[k] = va(j * NL + (i % NL));
@@ -321,6 +344,8 @@ class Renderer {
       if (dot(n, d) < 0) n = mul(n, -1);
       Nn.set(nrm(n), (j * cols + i) * 3);
     }
+    // спереди кок — это фото; объём нужен только там, куда фото не смотрит (бока и затылок при повороте)
+    for (let k = 0; k < NM * cols; k++) { const tt = clamp((Nn[k * 3 + 2] - 0.4) / (0.12 - 0.4), 0, 1); A[k] *= tt * tt * (3 - 2 * tt); }
     const idx = [];
     const lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
     for (let j = 0; j < NM - 1; j++) for (let i = 0; i < NL; i++) {
@@ -329,6 +354,21 @@ class Renderer {
       idx.push(a, c, b, b, c, d);
       for (const q of [a, b, c, d]) for (let k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], P[q * 3 + k]); hi[k] = Math.max(hi[k], P[q * 3 + k]); }
     }
+    // кок-проекция: [nv, ni, nfit] uint32; nv×3 позиции; nv×2 uv; ni индексов; nfit точек лба + их места у Жоруна
+    const pb = assets.proj, ph = new Uint32Array(pb.slice(0, 12).buffer), pnv = ph[0], pni = ph[1], pnf = ph[2];
+    let po = 12;
+    const pp = new Float32Array(pb.slice(po, po + pnv * 12).buffer); po += pnv * 12;
+    const puv = new Float32Array(pb.slice(po, po + pnv * 8).buffer); po += pnv * 8;
+    const pix = new Uint32Array(pb.slice(po, po + pni * 4).buffer); po += pni * 4;
+    this.fitIdx = new Uint32Array(pb.slice(po, po + pnf * 4).buffer); po += pnf * 4;
+    this.fitZh = new Float32Array(pb.slice(po, po + pnf * 12).buffer); po += pnf * 12;
+    const pti = new Uint16Array(pb.slice(po, po + pnv * 6).buffer); po += pnv * 6;
+    const ptb = new Float32Array(pb.slice(po, po + pnv * 12).buffer); po += pnv * 12;
+    const ptd = new Float32Array(pb.slice(po, po + pnv * 12).buffer); po += pnv * 12;
+    const ptw = new Float32Array(pb.slice(po, po + pnv * 4).buffer);
+    this.proj = vao(gl, [[0, pp, 3], [2, puv, 2], [3, ptw, 1], [4, ptd, 3], [5, pti, 3, true], [6, ptb, 3]], pnv < 65536 ? new Uint16Array(pix) : pix);
+    for (let i = 0; i < pnv; i++) for (let k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], pp[i * 3 + k] * 1.2); hi[k] = Math.max(hi[k], pp[i * 3 + k] * 1.2); }
+    this.useShell = !(debug && debug.noback);
     this.box = [];
     for (const x of [lo[0], hi[0]]) for (const y of [Math.min(lo[1], -9.6), hi[1]]) for (const z of [lo[2], hi[2]]) this.box.push([x, y, z]);
     // направление прядей — от лба к затылку (вдоль μ)
@@ -375,7 +415,7 @@ class Renderer {
     x1 = Math.ceil(clamp(x1 + pad, 0, view.W)); y1 = Math.ceil(clamp(y1 + pad, 0, view.H));
     return [x0, y0, x1 - x0, y1 - y0];
   }
-  render(pose, view, exposure, box){
+  render(pose, view, exposure, box, fit){
     const gl = this.gl, c = this.canvas;
     if (c.width !== view.W || c.height !== view.H) { c.width = view.W; c.height = view.H; }
     const [bx, by, bw, bh] = box;
@@ -394,6 +434,7 @@ class Renderer {
       gl.uniform4f(u.u_view, view.dx, view.dy, view.k, 1 / (pose.s * 40));
       gl.uniform2f(u.u_canvas, c.width, c.height); gl.uniform1f(u.u_zc, pose.t[2]);
       if (u.u_exp) gl.uniform1f(u.u_exp, exposure);
+      if (u.u_K) { gl.uniform3f(u.u_K, 1, 1, 1); gl.uniform3f(u.u_B, 0, 0, 0); }
       return u;
     };
     const draw = m => { gl.bindVertexArray(m.o); gl.drawElements(gl.TRIANGLES, m.count, m.type, 0); };
@@ -405,9 +446,12 @@ class Renderer {
     gl.colorMask(true, true, true, true);
     // 2) кок
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    u = use(this.pShell);
-    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.hairTex); gl.uniform1i(u.u_tex, 1);
-    if (!(this.debug && this.debug.noshell)) draw(this.shell);
+    if (this.useShell) {
+      u = use(this.pShell);
+      if (fit) { gl.uniform3fv(u.u_K, fit.K); gl.uniform3fv(u.u_B, fit.B); }
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.hairTex); gl.uniform1i(u.u_tex, 1);
+      draw(this.shell);
+    }
     // 3) усы, бакенбарды, прядь на лбу
     gl.depthMask(false);
     u = use(this.pDecal); gl.uniform1f(u.u_off, 0);
@@ -416,6 +460,11 @@ class Renderer {
     u = use(this.pStrip);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.burnTex); gl.uniform1i(u.u_tex, 1);
     if (!(this.debug && this.debug.nodecal)) draw(this.burns);
+    // 4) кок — фото Жоруна поверх всего, что за ним
+    u = use(this.pProj);
+    gl.uniform3fv(u.u_K, fit ? fit.K : [1, 1, 1]); gl.uniform3fv(u.u_B, fit ? fit.B : [0, 0, 0]);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.projTex); gl.uniform1i(u.u_tex, 1);
+    if (!(this.debug && this.debug.noshell)) draw(this.proj);
     gl.depthMask(true);
     gl.bindVertexArray(null);
     gl.disable(gl.SCISSOR_TEST);
@@ -464,10 +513,11 @@ async function makeTracker(mode, delegate, onProgress, useWorker){
 
 /* ---------------- снаружи */
 export async function createMask({ mode = "VIDEO", delegate = null, debug = false, onProgress = null, worker = true, fresh = true } = {}){
-  const [hair, decal, burnImg, burns, shell, tris] = await Promise.all([
+  const [projImg, proj, hair, decal, burnImg, burns, shell, tris] = await Promise.all([
+    loadImage(BASE + "zhorun/proj.webp" + VQ), fetchBytes(BASE + "zhorun/proj.bin" + VQ),
     loadImage(BASE + "zhorun/hair.webp" + VQ), loadImage(BASE + "zhorun/decal.webp" + VQ), loadImage(BASE + "zhorun/burns.webp" + VQ), fetchBytes(BASE + "zhorun/burns.bin" + VQ),
     fetchBytes(BASE + "zhorun/shell.bin" + VQ), fetchBytes(BASE + "zhorun/decal_tris.bin" + VQ)]);
-  const r = new Renderer({ hair, decal, burnImg, burns, shell, tris: new Uint16Array(tris.buffer, tris.byteOffset, tris.byteLength / 2) }, debug);
+  const r = new Renderer({ projImg, proj, hair, decal, burnImg, burns, shell, tris: new Uint16Array(tris.buffer, tris.byteOffset, tris.byteLength / 2) }, debug);
   const tr = await makeTracker(mode, delegate, onProgress, worker);
   const sm = new Smoother();
   const raw = new Float32Array(478 * 3);
@@ -637,12 +687,31 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
       r.upload(lm);
       const box = r.bbox(pose, view, lm);
       if (box[2] < 2 || box[3] < 2) return;
-      r.render(pose, view, this.exposure, box);
+      r.render(pose, view, this.exposure, box, this._fit());
       g.save();
       g.globalAlpha = Math.min(1, this.vis) * alpha;
       if (view.mirror) { g.translate(view.W, 0); g.scale(-1, 1); }
       g.drawImage(r.canvas, box[0], box[1], box[2], box[3], box[0], box[1], box[2], box[3]);
       g.restore();
+    },
+    // кок Жоруна → под лоб и виски этого человека: x, y — масштаб и сдвиг, z — сдвиг (по сглаженной форме лица)
+    _fit(){
+      const d = sm.def, I = r.fitIdx, Z = r.fitZh, n = I.length;
+      if (!d) return null;
+      const K = [1, 1, 1], B = [0, 0, 0];
+      for (let k = 0; k < 3; k++) {
+        let mz = 0, mu = 0;
+        for (let j = 0; j < n; j++) { mz += Z[j * 3 + k]; mu += CANON_V[I[j] * 3 + k] + d[I[j] * 3 + k]; }
+        mz /= n; mu /= n;
+        let kk = 1;
+        if (k < 2) {
+          let cv = 0, vz = 0;
+          for (let j = 0; j < n; j++) { const a = Z[j * 3 + k] - mz, b = CANON_V[I[j] * 3 + k] + d[I[j] * 3 + k] - mu; cv += a * b; vz += a * a; }
+          kk = clamp(cv / Math.max(vz, 1e-6), 0.85, 1.2);
+        }
+        K[k] = kk; B[k] = mu - kk * mz;
+      }
+      return { K, B };
     },
     debugTurn(yaw, pitch){
       const P = this.pose, c = add(P.t, mul(Rmul(P.R, HC), P.s));
