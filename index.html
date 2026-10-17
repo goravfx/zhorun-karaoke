@@ -870,7 +870,7 @@ function maskActive(){ return MASK.want !== "none" && !!MASK.obj && S.cam && S.m
 function loadMask(){
   if (MASK.obj || MASK.loading || MASK.unsupported) return MASK.loading;
   MASK.failed = false; MASK.progress = 0;
-  MASK.loading = import("./mask/mask.js?v=3")
+  MASK.loading = import("./mask/mask.js?v=4")
     .then(m => m.createMask({onProgress: p => { MASK.progress = p; updateMaskUI(); }}))
     .then(obj => { MASK.obj = obj; })
     .catch(e => {

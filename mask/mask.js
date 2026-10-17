@@ -6,7 +6,7 @@
 import { CANON_V, CANON_F, CANON_UV } from "./face-canon.js";
 
 const BASE = new URL("./", import.meta.url).href;
-const VQ = "?v=3";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
+const VQ = "?v=4";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
 const DEG = Math.PI / 180;
 
 /* ---------------- математика */
@@ -265,6 +265,15 @@ function ellipsoid(c, a){
   for (let j = 0; j < NV; j++) for (let i = 0; i < NU; i++) { const A = j * NU + i, B = j * NU + (i + 1) % NU; idx.push(A, A + NU, B, B, A + NU, B + NU); }
   return { p: new Float32Array(p), n: new Float32Array(n), idx: new Uint16Array(idx) };
 }
+function earOcc(side){ // ухо: эллипсоид за краем лица, верх отклонён назад — за ушами прячутся волосы с затылка
+  const e = ellipsoid([0, 0, 0], [1.3, 3.1, 2.0]), a = 15 * DEG, c = Math.cos(a), s = Math.sin(a);
+  for (let i = 0; i < e.p.length; i += 3) {
+    const y = e.p[i + 1], z = e.p[i + 2], ny = e.n[i + 1], nz = e.n[i + 2];
+    e.p[i] += side * 8.0; e.p[i + 1] = y * c + z * s + 1.2; e.p[i + 2] = -y * s + z * c - 6.1;   // спереди не заходит на бакенбарды
+    e.n[i + 1] = ny * c + nz * s; e.n[i + 2] = -ny * s + nz * c;
+  }
+  return e;
+}
 function neck(){ // шея: закрывает то, что у затылка уходит ниже челюсти
   const p = [], n = [], idx = [], NU = 32, ys = [-3.6, -9, -16, -26];
   for (const y of ys) for (let i = 0; i < NU; i++) { const a = 2 * Math.PI * i / NU; p.push(5.4 * Math.cos(a), y, -4.8 + 5.8 * Math.sin(a)); n.push(Math.cos(a), 0, Math.sin(a)); }
@@ -337,9 +346,9 @@ class Renderer {
     const occOff = new Float32Array(468);
     for (let i = 0; i < 468; i++) { const ax = Math.abs(CANON_V[i * 3]); occOff[i] = -0.7 * clamp((ax - 5.5) / 2.1, 0, 1); }
     this.faceOcc = vao(gl, [[1, N, 3], [2, uv, 2], [3, occOff, 1], [5, ids, 1, true]], new Uint16Array(CANON_F));
-    const sk = ellipsoid(HC, HA.map(a => a - 0.6)), nk = neck();
+    const sk = ellipsoid(HC, HA.map(a => a - 0.6)), nk = neck();   // больше нельзя: на широком лице череп вылезает сквозь виски и съедает бакенбарды
     const rig = m => vao(gl, [[0, m.p, 3], [1, m.n, 3], [2, new Float32Array(m.p.length / 3 * 2), 2], [3, new Float32Array(m.p.length / 3).fill(1), 1]], m.idx);
-    this.skull = rig(sk); this.neck = rig(nk);
+    this.skull = rig(sk); this.neck = rig(nk); this.ears = [rig(earOcc(-1)), rig(earOcc(1))];
     // бакенбарды: [nv, ni] uint16; nv×(i0, i1) uint16; nv×(w, d3, n3, uv2) float32; ni индексов
     const bb = assets.burns, nv = bb[0] | (bb[1] << 8), ni = bb[2] | (bb[3] << 8);
     const bi = new Uint16Array(bb.slice(4, 4 + nv * 4).buffer), bf = new Float32Array(bb.slice(4 + nv * 4, 4 + nv * 40).buffer);
@@ -392,7 +401,7 @@ class Renderer {
     gl.disable(gl.BLEND);
     if (!this.debug) gl.colorMask(false, false, false, false);
     let u = use(this.pBoundDepth); gl.uniform1f(u.u_off, this.debug ? 0 : -0.25); draw(this.faceOcc);
-    use(this.pRigidDepth); draw(this.skull); draw(this.neck);
+    use(this.pRigidDepth); draw(this.skull); draw(this.neck); for (const e of this.ears) draw(e);
     gl.colorMask(true, true, true, true);
     // 2) кок
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
