@@ -6,7 +6,7 @@
 import { CANON_V, CANON_F, CANON_UV } from "./face-canon.js";
 
 const BASE = new URL("./", import.meta.url).href;
-const VQ = "?v=5";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
+const VQ = "?v=6";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
 const DEG = Math.PI / 180;
 
 /* ---------------- математика */
@@ -330,7 +330,9 @@ class Renderer {
     const grid = (j, i) => {
       const ii = ((i % NL) + NL) % NL, jj = clamp(j, 0, NM - 1), d = dirLM(-180 + ii * LS, Math.min(179.8, 12 + jj * 2.5));
       const r0 = 1 / Math.hypot(d[0] / HA[0], d[1] / HA[1], d[2] / HA[2]), rr = r(jj * NL + ii);
-      return add(HC, mul(d, Math.max(r0 + 0.25, rr - 0.55)));   // объём сзади и по бокам чуть меньше фото: спереди край — пряди с фото
+      // объём сзади и по бокам меньше фото (спереди край — пряди с фото), макушка ниже кока: когда голова
+      // наклонена к телефону, она не торчит над коком гладкой каской
+      return add(HC, mul(d, Math.max(r0 + 0.2, rr - 0.55 - 1.1 * Math.max(0, d[1]))));
     };
     for (let j = 0; j < NM; j++) for (let i = 0; i < cols; i++) {
       const k = j * cols + i;
@@ -345,7 +347,10 @@ class Renderer {
       Nn.set(nrm(n), (j * cols + i) * 3);
     }
     // спереди кок — это фото; объём нужен только там, куда фото не смотрит (бока и затылок при повороте)
-    for (let k = 0; k < NM * cols; k++) { const tt = clamp((Nn[k * 3 + 2] - 0.4) / (0.12 - 0.4), 0, 1); A[k] *= tt * tt * (3 - 2 * tt); }
+    for (let k = 0; k < NM * cols; k++) {
+      const tt = clamp((Nn[k * 3 + 2] - 0.4) / (0.12 - 0.4), 0, 1);
+      A[k] *= tt * tt * (3 - 2 * tt);
+    }
     const idx = [];
     const lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
     for (let j = 0; j < NM - 1; j++) for (let i = 0; i < NL; i++) {
