@@ -63,6 +63,11 @@ button{cursor:pointer;background:none;border:0}
 .song img{width:56px;height:56px;border-radius:8px;flex:none;box-shadow:0 0 0 1px rgba(242,232,213,.18)}
 .song b{display:block;font-weight:600;font-size:16px;line-height:1.25}
 .song span{display:block;font-size:13.5px;color:var(--dust);line-height:1.35}
+.album-pill{display:inline-flex;align-items:center;gap:10px;max-width:100%;padding:5px 16px 5px 5px;margin:0 0 14px;border-radius:30px;background:rgba(13,9,7,.62);border:1px solid rgba(217,180,94,.6);color:var(--ivory);text-align:left;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.album-pill img{width:42px;height:42px;border-radius:50%;flex:none;object-fit:cover}
+.album-pill small{display:block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-hi)}
+.album-pill b{display:block;font-weight:600;font-size:15px;line-height:1.2}
+.album-pill[hidden]{display:none}
 .song.pick{width:100%;padding:8px 10px 8px 8px;margin:0 0 16px;border:1px solid rgba(242,232,213,.22);border-radius:14px;background:rgba(13,9,7,.55);color:var(--ivory);text-align:left;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .song.pick>div{flex:1;min-width:0}
 .song.pick b,.song.pick span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -79,6 +84,12 @@ button{cursor:pointer;background:none;border:0}
 .song-row small{display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.35;color:var(--dust);margin-top:2px}
 .song-row em{font-style:normal;font-size:11.5px;font-weight:600;letter-spacing:.02em;color:var(--black);background:var(--gold);border-radius:5px;padding:1px 6px}
 .song-row .tick{width:22px;height:22px;flex:none;border-radius:50%;border:1.5px solid rgba(242,232,213,.3)}
+.song-sec{display:flex;align-items:center;gap:12px;margin:18px 2px 10px}
+.song-sec:first-child{margin-top:0}
+.song-sec img{width:64px;height:64px;border-radius:10px;flex:none;object-fit:cover;box-shadow:0 0 0 1px rgba(217,180,94,.5)}
+.song-sec small{display:block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-hi)}
+.song-sec b{display:block;font:400 22px/1.15 var(--display);color:var(--ivory)}
+.song-sec.plain small{color:var(--dust)}
 .song-row[aria-checked="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
 .song-row[aria-checked="true"] .tick{border-color:var(--gold);background:var(--gold) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M6 11.5l3.2 3.2L16 8' fill='none' stroke='%230d0907' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat}
 .intro-body{position:relative;z-index:1;padding-bottom:calc(env(safe-area-inset-bottom) + 22px)}
@@ -208,6 +219,7 @@ button{cursor:pointer;background:none;border:0}
   <section class="screen intro is-active" id="intro" aria-labelledby="intro-title">
     <div class="intro-photo" role="img" aria-label="Жорун поёт на сцене из клипа «Мандалупа»"></div>
     <div class="intro-body wrap">
+      <button class="album-pill" id="album-pill" type="button" hidden><img id="album-cover" src="" alt="" width="42" height="42"><span><small id="album-label">Новый альбом</small><b id="album-title"></b></span></button>
       <h1 id="intro-title">Спой на&nbsp;страпонском</h1>
       <p class="lead">Пой поверх клипа или снимай себя, а&nbsp;в&nbsp;конце забирай готовый ролик для VK&nbsp;Клипов.</p>
       <button class="song pick" id="song-pick" type="button"><img id="song-cover" src="assets/cover-mandalupa-240.jpg" alt="" width="56" height="56"><div><b id="song-title">«Мандалупа»</b><span id="song-meta">Песня из&nbsp;клипа, 1:49</span></div><span class="more">Сменить<svg aria-hidden="true"><use href="#chev"/></svg></span></button>
@@ -501,12 +513,18 @@ function drawBackground(t){
     if (maskActive()) drawMask(f);
     return;
   }
-  if (BG.active() && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0 && !(SONG.clip.skip && t < SONG.clip.at + SONG.clip.skip)) {
+  const C = SONG.clip;
+  if (BG.active() && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0 && !(C.skip && t < C.at + C.skip) && !(C.until && t >= C.until + 0.8)) {
     coverDraw(bgVideo, bgVideo.videoWidth, bgVideo.videoHeight, false);
+    // клип короче песни (промо альбома): к его концу плавно переходим на кадры
+    if (C.until && t > C.until - 0.8) drawSlides(t, Math.min(1, (t - (C.until - 0.8)) / 0.8));
     return;
   }
-  // пока клип грузится — кадры из него с медленным наездом
+  // нет клипа или он ещё грузится — кадры с медленным наездом
   g.fillStyle = "#0d0907"; g.fillRect(0, 0, W, H);
+  drawSlides(t, 1);
+}
+function drawSlides(t, alpha){
   const tt = Math.max(t, -9);
   for (let i = 0; i < SLIDES.length; i++) {
     const s = SLIDES[i];
@@ -517,7 +535,7 @@ function drawBackground(t){
     if (!s.img.complete || !s.img.naturalWidth) continue;
     const p = Math.min(1, Math.max(0, (tt - s.t0) / Math.max(1, (Math.min(s.t1, SONG.duration + 2) - s.t0))));
     const z = s.fx[2] + (s.fx[3] - s.fx[2]) * p;
-    g.globalAlpha = a;
+    g.globalAlpha = a * alpha;
     coverDraw(s.img, s.img.naturalWidth, s.img.naturalHeight, false, s.fx[0], s.fx[1], z);
     g.globalAlpha = 1;
   }
@@ -788,7 +806,7 @@ function drawProgress(t){
 function render(t, tau){
   drawBackground(t);
   drawGrade();
-  if (!BG.active() || !SONG.clip.sign) drawHeader(t);   // в клипе «Мандалупы» своя вывеска «ЖОРУН» на сцене — там шапку не дублируем
+  if (!BG.active() || !SONG.clip.sign || (SONG.clip.until && t > SONG.clip.until)) drawHeader(t);   // в клипе «Мандалупы» и в промо альбома своя вывеска «ЖОРУН» — там шапку не дублируем
   drawLyrics(t, tau);
   if (t > -1.5 && t < SONG.firstBeat) drawCountdown(t);
   if (t >= 0) drawProgress(t);
@@ -951,7 +969,9 @@ function syncSetup(){
 }
 
 /* ---------------- выбор песни */
-function songMeta(s){ return (s.clip ? "Песня из клипа, " : "Фото группы, ") + fmtDur(s.duration); }
+const ALBUM_ON = typeof ALBUM !== "undefined" && ALBUM && ALBUM.songs && ALBUM.songs.length ? ALBUM : null;   // новый альбом: его песни наверху списка
+const inAlbum = id => !!ALBUM_ON && ALBUM_ON.songs.includes(id);
+function songMeta(s){ return (inAlbum(s.id) ? "Новый альбом, " : s.clip ? "Песня из клипа, " : "Фото группы, ") + fmtDur(s.duration); }
 function selectSong(id){
   const s = SONGS.find(x => x.id === id) || SONGS[0];
   if (SONG === s) return;
@@ -968,12 +988,27 @@ function selectSong(id){
   $("#song-meta").textContent = songMeta(s);
   $("#bg-card").style.backgroundImage = `url(${s.card})`;
   $("#bg-card-title").textContent = s.clip ? "Клип" : "Фото группы";
-  $("#bg-card-text").textContent = s.clip ? `Поёшь поверх клипа «${s.title}»` : "Поёшь на фоне фотографий группы";
+  $("#bg-card-text").textContent = s.clip ? (s.clip.until ? `Поёшь поверх промо альбома «${ALBUM_ON ? ALBUM_ON.title : s.title}»` : `Поёшь поверх клипа «${s.title}»`) : "Поёшь на фоне фотографий группы";
   document.querySelectorAll(".song-row").forEach(r => r.setAttribute("aria-checked", String(r.dataset.song === s.id)));
 }
 function buildSongList(){
   const list = $("#song-list");
-  for (const s of SONGS) {
+  const sec = (label, title, cover, plain) => {
+    const h = document.createElement("div"); h.className = "song-sec" + (plain ? " plain" : "");
+    if (cover) { const im = document.createElement("img"); im.src = cover; im.alt = ""; im.width = im.height = 64; h.appendChild(im); }
+    const t = document.createElement("div");
+    const sm = document.createElement("small"); sm.textContent = label; t.appendChild(sm);
+    if (title) { const b = document.createElement("b"); b.textContent = title; t.appendChild(b); }
+    h.appendChild(t); list.appendChild(h);
+  };
+  let order = SONGS;
+  if (ALBUM_ON) {
+    const al = ALBUM_ON.songs.map(id => SONGS.find(s => s.id === id)).filter(Boolean);
+    order = [...al, ...SONGS.filter(s => !inAlbum(s.id))];
+  }
+  for (const s of order) {
+    if (ALBUM_ON && s === order[0]) sec("Новый альбом", ALBUM_ON.title ? `«${ALBUM_ON.title}»` : "", ALBUM_ON.cover);
+    if (ALBUM_ON && !inAlbum(s.id) && (order.indexOf(s) === 0 || inAlbum(order[order.indexOf(s) - 1].id))) sec("Другие песни", "", null, true);
     const b = document.createElement("button");
     b.type = "button"; b.className = "song-row"; b.dataset.song = s.id; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", "false");
     const img = document.createElement("img"); img.src = s.cover; img.alt = ""; img.width = img.height = 52; img.loading = "lazy"; img.decoding = "async";
@@ -988,6 +1023,13 @@ function buildSongList(){
     b.addEventListener("click", () => { selectSong(s.id); show("intro"); });
     list.appendChild(b);
   }
+}
+if (ALBUM_ON) {
+  $("#album-pill").hidden = false;
+  $("#album-cover").src = ALBUM_ON.cover;
+  $("#album-title").textContent = `«${ALBUM_ON.title}»`;
+  if (ALBUM_ON.date) $("#album-label").textContent = `Новый альбом · ${ALBUM_ON.date}`;
+  $("#album-pill").addEventListener("click", () => { show("songs"); $("#songs").scrollTop = 0; });
 }
 $("#song-pick").addEventListener("click", () => {
   show("songs");
@@ -1419,7 +1461,7 @@ if (/VKAndroidApp|VKClient|com\.vkontakte|Instagram|FBAN|FBAV|Telegram/i.test(na
 
 /* ---------------- старт */
 buildSongList();
-selectSong(PARAMS.get("song") || (() => { try { return localStorage.getItem("song"); } catch (e) { return null; } })() || SONGS[0].id);
+selectSong(PARAMS.get("song") || (() => { try { return localStorage.getItem("song"); } catch (e) { return null; } })() || (ALBUM_ON ? ALBUM_ON.songs[0] : SONGS[0].id));
 fontsReady.then(() => { HEADER = null; LINE_CACHE.clear(); prepareLines(); render(-9, performance.now() / 1000); });
 
 // режим проверки кадра: ?still=40&cam=0
