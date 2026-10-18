@@ -138,9 +138,10 @@ button{cursor:pointer;background:none;border:0}
 .rec-btn:active span{transform:scale(.9)}
 .rec-btn.play span{border-radius:0;width:0;height:0;background:none;border-style:solid;border-width:18px 0 18px 30px;border-color:transparent transparent transparent var(--ivory);margin-left:8px}
 .rec-label{font-weight:600;font-size:15px;text-shadow:0 1px 8px rgba(0,0,0,.8)}
-.masks{position:absolute;right:10px;bottom:38px;display:flex;gap:6px}
-.mask-opt{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:52px;font-size:11.5px;font-weight:500;white-space:nowrap;color:var(--ivory);text-shadow:0 1px 6px rgba(0,0,0,.85)}
-@media (max-width:340px){.mask-opt{font-size:0;gap:0;min-width:46px}}
+.masks{position:absolute;right:calc(env(safe-area-inset-right) + 6px);top:calc(env(safe-area-inset-top) + 74px);bottom:calc(env(safe-area-inset-bottom) + 150px);display:flex;flex-direction:column;justify-content:center;gap:6px;overflow-y:auto;scrollbar-width:none;padding:2px}
+.masks::-webkit-scrollbar{display:none}
+.mask-opt{display:flex;flex-direction:column;align-items:center;gap:3px;width:74px;flex:none;font-size:10.5px;font-weight:500;white-space:nowrap;color:var(--ivory);text-shadow:0 1px 6px rgba(0,0,0,.9)}
+@media (max-height:620px){.mask-opt{font-size:0;gap:0}}
 .mask-opt i{position:relative;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;overflow:hidden;background:rgba(13,9,7,.55) center/cover no-repeat;border:2px solid rgba(242,232,213,.4);transition:border-color .15s,transform .15s}
 .mask-opt i svg{width:22px;height:22px}
 .mask-opt[aria-checked="true"] i{border-color:var(--gold);box-shadow:0 0 0 3px rgba(217,180,94,.28)}
@@ -244,11 +245,15 @@ button{cursor:pointer;background:none;border:0}
       <span class="rec" id="rec-ind" hidden><i aria-hidden="true"></i><span id="rec-time">0:00</span></span>
       <button class="pill" id="flip" type="button" hidden><svg aria-hidden="true"><use href="#flip"/></svg>Камера</button>
     </div>
+    <div class="masks" id="masks" role="radiogroup" aria-label="Маска" hidden>
+      <button class="mask-opt" type="button" role="radio" data-mask="none" aria-checked="false"><i aria-hidden="true"><svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M6.4 17.6 17.6 6.4"/></g></svg></i>Без маски</button>
+      <button class="mask-opt" type="button" role="radio" data-mask="zhorun" aria-checked="true"><i aria-hidden="true" style="background-image:url(assets/mask-zhorun.jpg)"><b class="pct" hidden></b></i>Жорун</button>
+      <button class="mask-opt" type="button" role="radio" data-mask="drummer" aria-checked="false"><i aria-hidden="true" style="background-image:url(assets/mask-drummer.jpg)"><b class="pct" hidden></b></i>Барабанщик</button>
+      <button class="mask-opt" type="button" role="radio" data-mask="accordion" aria-checked="false"><i aria-hidden="true" style="background-image:url(assets/mask-accordion.jpg)"><b class="pct" hidden></b></i>Аккордеонист</button>
+      <button class="mask-opt" type="button" role="radio" data-mask="trumpet" aria-checked="false"><i aria-hidden="true" style="background-image:url(assets/mask-trumpet.jpg)"><b class="pct" hidden></b></i>Трубач</button>
+      <button class="mask-opt" type="button" role="radio" data-mask="guitar" aria-checked="false"><i aria-hidden="true" style="background-image:url(assets/mask-guitar.jpg)"><b class="pct" hidden></b></i>Гитаристка</button>
+    </div>
     <div class="stage-bottom" id="stage-controls">
-      <div class="masks" id="masks" role="radiogroup" aria-label="Маска" hidden>
-        <button class="mask-opt" type="button" role="radio" data-mask="none" aria-checked="false"><i aria-hidden="true"><svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M6.4 17.6 17.6 6.4"/></g></svg></i>Без маски</button>
-        <button class="mask-opt" type="button" role="radio" data-mask="zhorun" aria-checked="true"><i aria-hidden="true" style="background-image:url(assets/mask-zhorun.jpg)"><b class="pct" id="mask-pct" hidden></b></i>Жорун</button>
-      </div>
       <button class="rec-btn" id="rec-start" type="button" aria-label="Начать запись"><span></span></button>
       <p class="rec-label" id="rec-label">Начать запись</p>
     </div>
@@ -921,16 +926,18 @@ async function openCamera(){
   try { await camVideo.play(); } catch (e) {}
 }
 
-/* ---------------- маска «Жорун»: усы и кок, держатся на лице (mask/mask.js грузится только для камеры) */
-const MASK = {want: (PARAMS.get("mask") || (() => { try { return localStorage.getItem("mask"); } catch (e) { return null; } })()) === "none" ? "none" : "zhorun", obj: null, loading: null, failed: false, progress: 0,
+/* ---------------- маски участников: держатся на лице (mask/mask.js грузится только для камеры) */
+const MASK_LOOKS = ["zhorun", "drummer", "accordion", "trumpet", "guitar"];
+const MASK = {want: (() => { const v = PARAMS.get("mask") || (() => { try { return localStorage.getItem("mask"); } catch (e) { return null; } })(); return v === "none" || MASK_LOOKS.includes(v) ? v : "zhorun"; })(), obj: null, loading: null, failed: false, progress: 0, lookBusy: null,
   unsupported: (() => { try { return !document.createElement("canvas").getContext("webgl2"); } catch (e) { return true; } })()};
 function maskActive(){ return MASK.want !== "none" && !!MASK.obj && S.cam && S.mode === "record"; }
+function maskBusy(){ return MASK.want !== "none" && (!!MASK.loading || !!MASK.lookBusy); }
 function loadMask(){
   if (MASK.obj || MASK.loading || MASK.unsupported) return MASK.loading;
   MASK.failed = false; MASK.progress = 0;
-  MASK.loading = import("./mask/mask.js?v=8")
-    .then(m => m.createMask({onProgress: p => { MASK.progress = p; updateMaskUI(); }, ...(PARAMS.has("ring") ? {ring: +PARAMS.get("ring"), maxDelay: +(PARAMS.get("maxdelay") || 240)} : {})}))
-    .then(obj => { MASK.obj = obj; })
+  MASK.loading = import("./mask/mask.js?v=9")
+    .then(m => m.createMask({look: MASK.want !== "none" ? MASK.want : "zhorun", onProgress: p => { MASK.progress = p; updateMaskUI(); }, ...(PARAMS.has("ring") ? {ring: +PARAMS.get("ring"), maxDelay: +(PARAMS.get("maxdelay") || 240)} : {})}))
+    .then(obj => { MASK.obj = obj; if (MASK.want !== "none" && obj.look !== MASK.want) setLook(MASK.want); })
     .catch(e => {
       console.warn("mask", e); MASK.failed = true;
       if (MASK.want !== "none" && S.phase === "preview") toast("Маска не загрузилась. Проверь интернет и нажми на неё ещё раз — или пой без маски.");
@@ -939,19 +946,32 @@ function loadMask(){
   updateMaskUI();
   return MASK.loading;
 }
+// другой участник: трекер уже работает, догружаются только его волосы и кожа (сотни КБ)
+function setLook(name){
+  const m = MASK.obj;
+  if (!m || name === "none") return;
+  MASK.lookBusy = name; updateMaskUI();
+  m.setLook(name)
+    .catch(e => { console.warn("mask look", e); if (MASK.want === name && S.phase === "preview") toast("Маска не загрузилась. Проверь интернет и нажми на неё ещё раз."); })
+    .finally(() => { if (MASK.lookBusy === name) MASK.lookBusy = null; updateMaskUI(); });
+}
 function updateMaskUI(){
   $("#masks").hidden = MASK.unsupported || !(S.mode === "record" && S.cam && S.phase === "preview");
-  document.querySelectorAll(".mask-opt").forEach(b => b.setAttribute("aria-checked", String(b.dataset.mask === MASK.want)));
-  const pct = $("#mask-pct"), busy = MASK.want !== "none" && !!MASK.loading;
-  pct.hidden = !busy;
-  if (busy) pct.textContent = MASK.progress >= 0.99 ? "···" : `${Math.round(MASK.progress * 100)}%`;
+  document.querySelectorAll(".mask-opt").forEach(b => {
+    const on = b.dataset.mask === MASK.want, pct = b.querySelector(".pct");
+    b.setAttribute("aria-checked", String(on));
+    if (!pct) return;
+    const busy = on && (!!MASK.loading || MASK.lookBusy === b.dataset.mask);
+    pct.hidden = !busy;
+    if (busy) pct.textContent = MASK.loading && MASK.progress < 0.99 ? `${Math.round(MASK.progress * 100)}%` : "···";
+  });
 }
 $("#masks").addEventListener("click", e => {
   const b = e.target.closest(".mask-opt");
   if (!b) return;
   MASK.want = b.dataset.mask;
   try { localStorage.setItem("mask", MASK.want); } catch (e) {}
-  if (MASK.want !== "none") loadMask();
+  if (MASK.want !== "none") { if (MASK.obj) setLook(MASK.want); else loadMask(); }
   updateMaskUI();
 });
 /* с маской на экран идёт кадр камеры чуть из прошлого — тот, для которого лицо уже найдено,
@@ -964,7 +984,7 @@ function camFrame(){
 function drawMask(f){
   const k = Math.max(W / f.w, H / f.h);
   const t0 = performance.now();
-  MASK.obj.draw(g, {dx: (W - f.w * k) / 2, dy: (H - f.h * k) / 2, k, W, H, mirror: S.facing === "user"}, 1, f.t);
+  MASK.obj.draw(g, {dx: (W - f.w * k) / 2, dy: (H - f.h * k) / 2, k, W, H, mirror: S.facing === "user"}, 1, f.t, f.src);
   PERF.mask = PERF.mask * 0.9 + (performance.now() - t0) * 0.1;
 }
 /* цифры дубля на экране результата — по ним видно, где тормозит на конкретном телефоне */
@@ -974,7 +994,7 @@ function showDiag(){
   const med = a => { if (!a.length) return 0; const b = a.slice().sort((x, y) => x - y); return b[b.length >> 1]; };
   const sec = ((T.f1 || 0) - (T.f0 || 0)) / 1000, fps = T.frames > 1 && sec > 0 ? (T.frames - 1) / sec : 0, m = MASK.obj;
   let txt = `Для разбора: ${fps.toFixed(0)} к/с, кадр ${(T.ms / Math.max(1, T.frames)).toFixed(0)} мс, камера ${camVideo.videoWidth}×${camVideo.videoHeight}`;
-  if (maskActive() && m) txt += `; маска: ${m.kind}/${m.delegate}, поиск ${med(T.det).toFixed(0)} мс, ${med(T.rate).toFixed(0)} раз/с, картинка позже на ${T.delay.toFixed(0)} мс`;
+  if (maskActive() && m) txt += `; маска ${m.look}: ${m.kind}/${m.delegate}, поиск ${med(T.det).toFixed(0)} мс, ${med(T.rate).toFixed(0)} раз/с, картинка позже на ${T.delay.toFixed(0)} мс`;
   el.textContent = txt; el.hidden = false;
 }
 /* ?debug — цифры для разбора тормозов на конкретном телефоне */
@@ -1073,15 +1093,15 @@ function waitForClip(){
   });
 }
 
-/* маска ещё грузится, а человек уже жмёт запись — ждём её (не дольше 30 с), чтобы ролик начался с усами */
+/* маска ещё грузится, а человек уже жмёт запись — ждём её (не дольше 30 с), чтобы ролик начался в маске */
 function waitForMask(){
   const busy = $("#busy");
   return new Promise(res => {
     const t0 = performance.now();
     const tick = () => {
-      if (!MASK.loading || performance.now() - t0 > 30000 || S.phase !== "preview") { clearInterval(iv); busy.hidden = true; res(); return; }
+      if (!maskBusy() || performance.now() - t0 > 30000 || S.phase !== "preview") { clearInterval(iv); busy.hidden = true; res(); return; }
       busy.hidden = false;
-      busy.textContent = `Надеваю усы… ${Math.round(MASK.progress * 100)}%`;
+      busy.textContent = MASK.loading ? `Надеваю маску… ${Math.round(MASK.progress * 100)}%` : "Надеваю маску…";
     };
     const iv = setInterval(tick, 200); tick();
   });
@@ -1279,7 +1299,7 @@ async function finishTake(){
 $("#rec-start").addEventListener("click", async () => {
   if (S.phase !== "preview") return;
   if (BG.active()) { BG.unlock(); await waitForClip(); if (S.phase !== "preview") return; }
-  if (S.cam && MASK.want !== "none" && MASK.loading) { await waitForMask(); if (S.phase !== "preview") return; }
+  if (S.cam && maskBusy()) { await waitForMask(); if (S.phase !== "preview") return; }
   startTake();
 });
 $("#stage-stop").addEventListener("click", () => { S.stopRequested = true; finishTake(); });

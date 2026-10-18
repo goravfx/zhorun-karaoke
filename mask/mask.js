@@ -1,12 +1,13 @@
-// Маска «Жорун»: кок, усы-подкова, бакенбарды и прядь на лбу сняты с фото самого Жоруна.
-// Кок — оболочка по силуэтам головы с разных ракурсов, на неё спроецированы фото;
-// усы и бакенбарды — «наклейка» на сетку лица, поэтому двигаются вместе с губами и щеками.
+// Маски участников «Жоруна»: всё снято с их фото.
+// Причёски — фото анфас на объёме головы (2.5D) + оболочка по бокам и сзади; ирокез — объёмные шипы;
+// усы, бакенбарды, зубы — наклейки на сетку лица; мешки, морщины, прыщи и грим — прямо по коже человека
+// (кадр камеры под лицом умножается на детали образца, поэтому свет и цвет лица остаются его).
 // Лицо ищет MediaPipe Face Landmarker в отдельном потоке, а на экран идёт тот же кадр камеры,
 // на котором лицо нашли, — маска не отстаёт от головы.
 import { CANON_V, CANON_F, CANON_UV } from "./face-canon.js";
 
 const BASE = new URL("./", import.meta.url).href;
-const VQ = "?v=8";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
+const VQ = "?v=9";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
 const DEG = Math.PI / 180;
 
 /* ---------------- математика */
@@ -48,6 +49,33 @@ async function loadImage(url){
   img.src = url;
   await img.decode();
   return img;
+}
+
+/* ---------------- образы: из каких файлов состоит каждый (файлы — в папке образа) */
+const LOOKS = {
+  zhorun:    { ears: true, shell: { cut: 0.55, crown: 1.1 }, files: ["proj.webp", "proj.bin", "hair.webp", "shell.bin", "decal.webp", "decal_tris.bin", "burns.webp", "burns.bin"] },
+  drummer:   { ears: true, files: ["spikes.webp", "spikes.bin", "det.webp"] },
+  accordion: { ears: true, files: ["paint.webp"] },
+  guitar:    { ears: false, fill: true, spec: 0.11, shell: { cut: 0.35, crown: 0.6 }, files: ["proj.webp", "proj.bin", "hair.webp", "shell.bin", "det.webp", "teeth.webp", "teeth.bin"] },
+  trumpet:   { ears: false, fill: true, spec: 0.1, shell: { cut: 0.35, crown: 0.6 }, files: ["proj.webp", "proj.bin", "hair.webp", "shell.bin", "det.webp"] },
+};
+export const LOOK_NAMES = Object.keys(LOOKS);
+// .bin лежат и сжатыми (.gz, втрое меньше): браузер распаковывает сам; старый браузер без распаковщика берёт обычные
+async function fetchGz(url){
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status} ${url}`);
+  return new Uint8Array(await new Response(res.body.pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
+}
+async function loadLook(name, lenient = false){
+  const A = {}, dir = BASE + name + "/";
+  await Promise.all(LOOKS[name].files.map(async f => {
+    try {
+      if (/\.(webp|png|jpg)$/.test(f)) A[f] = await loadImage(dir + f + VQ);
+      else if (typeof DecompressionStream === "function") { try { A[f] = await fetchGz(dir + f + ".gz" + VQ); } catch (e) { A[f] = await fetchBytes(dir + f + VQ); } }
+      else A[f] = await fetchBytes(dir + f + VQ);
+    } catch (e) { if (!lenient) throw e; }
+  }));
+  return A;
 }
 
 /* ---------------- поза головы по устойчивым точкам (Horn) */
@@ -172,27 +200,55 @@ layout(location=1) in vec3 a_n; layout(location=2) in vec2 a_uv; layout(location
 uniform float u_off;
 out vec2 v_uv; out float v_a; out vec3 v_n;
 void main(){ vec3 N = normalize(u_R * a_n); vec3 P = lm(a_i) + N * ((a_off + u_off) * u_s); v_n = N; v_uv = a_uv; v_a = 1.0; gl_Position = clipOf(P); }`;
-// бакенбарды: смесь двух точек контура лица + смещение в осях головы
+// кожа: сетка лица ровно по точкам (+ полоса лба выше сетки — продолжение по двум точкам), a_cov — 0 по краю (без шва)
+// v_src — откуда брать кожу для полосы лба: её зеркало вниз через край сетки (прячет свою линию волос под чужой причёской)
+const VS_SKIN = VHEAD + `
+layout(location=1) in vec3 a_n; layout(location=2) in vec2 a_uv; layout(location=3) in float a_cov; layout(location=4) in float a_band; layout(location=5) in uvec2 a_ii; layout(location=6) in float a_w; layout(location=7) in float a_w2;
+out vec2 v_uv; out float v_a; out vec3 v_n; out vec2 v_src; out float v_band;
+void main(){ vec3 N = normalize(u_R * a_n); v_n = N; v_uv = a_uv; v_a = a_cov; v_band = a_band; v_src = mix(lm(a_ii.x), lm(a_ii.y), a_w2).xy; gl_Position = clipOf(mix(lm(a_ii.x), lm(a_ii.y), a_w)); }`;
+// полоса у точек лица (бакенбарды, зубы): смесь двух точек + смещение в осях головы
 const VS_STRIP = VHEAD + `
 layout(location=1) in vec3 a_n; layout(location=2) in vec2 a_uv; layout(location=4) in vec3 a_d; layout(location=5) in uvec2 a_ii; layout(location=6) in float a_w;
 out vec2 v_uv; out float v_a; out vec3 v_n;
 void main(){ vec3 N = normalize(u_R * a_n); vec3 P = mix(lm(a_ii.x), lm(a_ii.y), a_w) + (u_R * a_d) * u_s; v_n = N; v_uv = a_uv; v_a = 1.0; gl_Position = clipOf(P); }`;
-// кок «2.5D»: фото анфас на объёме причёски; u_K/u_B подгоняют кок Жоруна под лоб и виски человека
+// причёска «2.5D»: фото анфас на объёме причёски; u_K/u_B подгоняют её под лоб и виски человека
 const VS_PROJ = VHEAD + `
 layout(location=0) in vec3 a_p; layout(location=2) in vec2 a_uv; layout(location=3) in float a_tw; layout(location=4) in vec3 a_td;
 layout(location=5) in uvec3 a_ti; layout(location=6) in vec3 a_tb;
 uniform vec3 u_K; uniform vec3 u_B;
 out vec2 v_uv;
 void main(){
-  vec3 Pr = u_s * (u_R * (a_p * u_K + u_B)) + u_t;                                   // объём кока — вместе с головой
+  vec3 Pr = u_s * (u_R * (a_p * u_K + u_B)) + u_t;                                   // объём — вместе с головой
   vec3 Pf = a_tb.x * lm(a_ti.x) + a_tb.y * lm(a_ti.y) + a_tb.z * lm(a_ti.z) + u_s * (u_R * a_td);   // у лба — на коже лба
   v_uv = a_uv; gl_Position = clipOf(mix(Pr, Pf, a_tw));
+}`;
+// шипы ирокеза: лента вдоль оси шипа, всегда развёрнута к камере (как пучок волос с любого ракурса)
+const VS_SPIKE = VHEAD + `
+layout(location=0) in vec3 a_c; layout(location=1) in vec3 a_tan; layout(location=2) in vec2 a_uv; layout(location=3) in float a_w; layout(location=4) in vec2 a_sh;
+uniform vec3 u_K; uniform vec3 u_B;
+out vec2 v_uv; out vec2 v_sh;
+void main(){
+  vec3 C = u_s * (u_R * (a_c * u_K + u_B)) + u_t;
+  vec3 T = normalize(u_R * (a_tan * u_K));
+  vec3 X = u_R * vec3(1.0, 0.0, 0.0);
+  vec3 S = cross(T, vec3(0.0, 0.0, 1.0));
+  float sl = length(S);
+  S = sl > 1e-4 ? S / sl : X;
+  if (dot(S, X) < 0.0) S = -S;
+  S = normalize(mix(X, S, smoothstep(0.08, 0.35, sl)));   // шип смотрит прямо в камеру — лента не схлопывается
+  v_uv = a_uv; v_sh = a_sh;
+  gl_Position = clipOf(C + S * (a_w * u_s));
 }`;
 const FS_PROJ = `#version 300 es
 precision highp float;
 uniform sampler2D u_tex; uniform float u_exp;
 in vec2 v_uv; out vec4 o;
 void main(){ vec4 c = texture(u_tex, v_uv); if (c.a < 0.004) discard; o = vec4(c.rgb * u_exp, c.a); }`;
+const FS_SPIKE = `#version 300 es
+precision highp float;
+uniform sampler2D u_tex; uniform float u_exp;
+in vec2 v_uv; in vec2 v_sh; out vec4 o;
+void main(){ vec4 c = texture(u_tex, v_uv) * v_sh.y; if (c.a < 0.004) discard; o = vec4(c.rgb * (v_sh.x * u_exp), c.a); }`;
 const FS_DEPTH = `#version 300 es
 precision mediump float; out vec4 o; void main(){ o = vec4(0.0); }`;
 const FS_GRAY = `#version 300 es
@@ -200,7 +256,7 @@ precision mediump float; in vec3 v_n; out vec4 o;
 void main(){ vec3 N = normalize(v_n); float l = 0.35 + 0.65 * max(0.0, dot(N, normalize(vec3(0.3, -0.5, -0.8)))); o = vec4(vec3(0.62, 0.6, 0.58) * l, 1.0); }`;
 const FS_SHELL = `#version 300 es
 precision highp float;
-uniform sampler2D u_tex; uniform float u_exp;
+uniform sampler2D u_tex; uniform float u_exp; uniform float u_spec;
 in vec2 v_uv; in float v_a; in vec3 v_n; in vec3 v_t; out vec4 o;
 void main(){
   vec4 c = texture(u_tex, v_uv);                  // цвет уже умножен на альфу
@@ -210,11 +266,11 @@ void main(){
   if (c.a * k < 0.02) discard;
   vec3 L = normalize(vec3(0.15, -0.75, -0.65));   // свет сверху-спереди (y вниз, z от камеры)
   float dif = 0.8 + 0.28 * max(0.0, dot(N, L));
-  // блеск вдоль прядей (Kajiya–Kay): полоса бликов «едет» по коку, когда голова поворачивается
+  // блеск вдоль прядей (Kajiya–Kay): полоса бликов «едет» по причёске, когда голова поворачивается
   vec3 H = normalize(L + vec3(0.0, 0.0, -1.0));
   float tl = length(v_t), spec = 0.0;
   if (tl > 1e-4) { float th = dot(v_t / tl, H); spec = pow(sqrt(max(0.0, 1.0 - th * th)), 14.0) * smoothstep(0.0, 0.5, dot(N, H)); }
-  vec3 col = c.rgb * dif + vec3(0.92, 0.9, 0.87) * (spec * 0.075 * c.a);
+  vec3 col = c.rgb * dif + vec3(0.92, 0.9, 0.87) * (spec * u_spec * c.a);
   o = vec4(col * k * u_exp, c.a * k);
 }`;
 const FS_DECAL = `#version 300 es
@@ -227,6 +283,36 @@ void main(){
   float rim = smoothstep(-0.2, 0.05, -normalize(v_n).z);
   o = vec4(c.rgb * u_exp, c.a) * rim;
 }`;
+// кожа: берём сам кадр камеры под лицом и меняем его — мешки, морщины, прыщи умножаются на кожу человека,
+// грим ложится краской со светом и тенями его лица. Снаружи слоя кадр не трогаем.
+const FS_SKIN = `#version 300 es
+precision highp float;
+uniform sampler2D u_cam; uniform vec4 u_cm;      // (dx, dy, 1/(k·w), 1/(k·h)): пиксель холста → uv кадра
+uniform sampler2D u_det; uniform sampler2D u_paint;
+uniform vec2 u_canvas; uniform vec3 u_skin; uniform float u_light; uniform vec2 u_camInv; uniform float u_fill;
+in vec2 v_uv; in float v_a; in vec3 v_n; in vec2 v_src; in float v_band; out vec4 o;
+void main(){
+  vec2 cp = vec2(gl_FragCoord.x, u_canvas.y - gl_FragCoord.y);
+  vec3 cam = texture(u_cam, (cp - u_cm.xy) * u_cm.zw).rgb;
+  float fb = v_band * u_fill;
+  if (fb > 0.001) {                              // полоса лба — кожа лба человека (зеркально снизу); если там прядь — просто цвет кожи
+    vec3 fs = texture(u_cam, v_src * u_camInv).rgb;
+    float lr = dot(fs, vec3(0.299, 0.587, 0.114)) / max(dot(u_skin, vec3(0.299, 0.587, 0.114)), 0.04);
+    fs = mix(u_skin * 0.97, fs, smoothstep(0.5, 0.78, lr));
+    cam = mix(cam, fs, fb);
+  }
+  vec4 d = texture(u_det, v_uv);                 // rgb — множитель/2 (0.5 — без изменений), a — где слой есть
+  vec4 p = texture(u_paint, v_uv);               // краска (умножена на альфу)
+  float rim = smoothstep(-0.25, 0.1, -normalize(v_n).z) * v_a;
+  float A = max(d.a, fb) * rim, P = p.a * rim;
+  if (A + P < 0.003) discard;
+  vec3 base = cam * (d.rgb * 2.0);
+  const vec3 Y = vec3(0.299, 0.587, 0.114);
+  float sh = pow(clamp(dot(cam, Y) / max(dot(u_skin, Y), 0.04), 0.12, 1.6), 0.85);
+  vec3 paint = p.rgb * (sh * u_light) + vec3(0.14) * max(0.0, sh - 1.12) * p.a;   // тени лица на гриме + жирный блеск
+  vec3 col = paint * rim + base * A * (1.0 - P);
+  o = vec4(col, P + A * (1.0 - P));
+}`;
 function program(gl, vs, fs){
   const mk = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
   const p = gl.createProgram();
@@ -237,28 +323,40 @@ function program(gl, vs, fs){
   for (let i = 0, n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); i < n; i++) { const info = gl.getActiveUniform(p, i); u[info.name] = gl.getUniformLocation(p, info.name); }
   return { p, u };
 }
-function vao(gl, attrs, idx){
+function vao(gl, attrs, idx, own, dynamic){
   const o = gl.createVertexArray(); gl.bindVertexArray(o);
+  const bufs = [];
   for (const [loc, data, size, int] of attrs) {
-    const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW); bufs.push(b);
     gl.enableVertexAttribArray(loc);
     if (int) gl.vertexAttribIPointer(loc, size, gl.UNSIGNED_SHORT, 0, 0); else gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
   }
-  const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+  const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, dynamic ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW); bufs.push(ib);
   gl.bindVertexArray(null);
-  return { o, count: idx.length, type: idx instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT };
+  if (own) { own.vaos.push(o); own.bufs.push(...bufs); }
+  return { o, ib, count: idx.length, type: idx instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT };
 }
-function texture(gl, img, clampS){
+function texture(gl, img, clampS, own, premult = true){
   const t = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, t);
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, premult);
+  if (!premult) gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
   gl.generateMipmap(gl.TEXTURE_2D);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, clampS ? gl.CLAMP_TO_EDGE : gl.REPEAT);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  if (own) own.texs.push(t);
+  return t;
+}
+function solid(gl, rgba){
+  const t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(rgba));
+  for (const k of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, k, gl.NEAREST);
   return t;
 }
 function faceNormals(){
@@ -272,6 +370,47 @@ function faceNormals(){
   }
   for (let i = 0; i < 468; i++) n.set(nrm([n[i * 3], n[i * 3 + 1], n[i * 3 + 2]]), i * 3);
   return n;
+}
+const OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109];
+// сетка для слоя кожи: лицо MediaPipe + полоса лба над ним (два ряда: 1 и 2 см) — грим и морщины не обрываются
+// посреди лба, а под чужой причёской своя линия волос закрывается кожей лба (зеркало вниз через край сетки)
+const TOP = [162, 21, 54, 103, 67, 109, 10, 338, 297, 332, 284, 251, 389];
+const EXT = [1.5, 2.6];
+function bandUV(uc, ui, ww){   // продолжение uv за край сетки, но не за край текстуры
+  let f = 1;
+  for (const q of [0, 1]) { const d = (ui[q] - uc[q]) * (ww - 1), room = d > 0 ? 0.998 - ui[q] : ui[q] - 0.002; if (Math.abs(d) > 1e-6) f = Math.min(f, Math.max(0, room) / Math.abs(d)); }
+  return [ui[0] + (ui[0] - uc[0]) * (ww - 1) * f, ui[1] + (ui[1] - uc[1]) * (ww - 1) * f];
+}
+function skinMesh(gl, N){
+  const NT = TOP.length, nv = 468 + NT * EXT.length;
+  const ii = new Uint16Array(nv * 2), w = new Float32Array(nv), w2 = new Float32Array(nv), band = new Float32Array(nv), uv = new Float32Array(nv * 2), n = new Float32Array(nv * 3), cov = new Float32Array(nv).fill(1);
+  for (let i = 0; i < 468; i++) { ii[i * 2] = ii[i * 2 + 1] = i; uv[i * 2] = CANON_UV[i * 2]; uv[i * 2 + 1] = 1 - CANON_UV[i * 2 + 1]; }
+  n.set(N);
+  for (const i of OVAL) cov[i] = 0;
+  const onOval = new Set(OVAL), idx = Array.from(CANON_F);
+  const row = r => 468 + r * NT;
+  TOP.forEach((i, k) => {
+    const a = TOP[Math.max(0, k - 1)], b = TOP[Math.min(NT - 1, k + 1)], Vi = cv(i);
+    let out = nrm(cross(sub(cv(b), cv(a)), [N[i * 3], N[i * 3 + 1], N[i * 3 + 2]]));
+    if (out[0] * Vi[0] + out[1] * (Vi[1] - 1) < 0) out = mul(out, -1);
+    const tgt = sub(Vi, mul(out, 1.6));
+    let c = -1, best = 1e9;
+    for (let j = 0; j < 468; j++) { if (onOval.has(j)) continue; const d = len(sub(cv(j), tgt)); if (d < best) { best = d; c = j; } }
+    const dist = Math.max(0.5, len(sub(Vi, cv(c))));
+    EXT.forEach((ex, r) => {
+      const e = row(r) + k, ww = 1 + ex / dist;
+      ii[e * 2] = c; ii[e * 2 + 1] = i; w[e] = ww; w2[e] = 2 - ww; band[e] = 1;
+      uv.set(bandUV([uv[c * 2], uv[c * 2 + 1]], [uv[i * 2], uv[i * 2 + 1]], ww), e * 2);
+      n.set(N.subarray(i * 3, i * 3 + 3), e * 3);
+      cov[e] = r === EXT.length - 1 || k === 0 || k === NT - 1 ? 0 : 1;
+    });
+    band[i] = 1; cov[i] = k === 0 || k === NT - 1 ? 0 : 1;
+    if (k < NT - 1) {
+      const e0 = row(0) + k, e1 = row(1) + k;
+      idx.push(i, TOP[k + 1], e0, TOP[k + 1], e0 + 1, e0, e0, e0 + 1, e1, e0 + 1, e1 + 1, e1);
+    }
+  });
+  return vao(gl, [[1, n, 3], [2, uv, 2], [3, cov, 1], [4, band, 1], [5, ii, 2, true], [6, w, 1], [7, w2, 1]], new Uint16Array(idx));
 }
 function ellipsoid(c, a){
   const p = [], n = [], idx = [], NU = 36, NV = 20;
@@ -297,46 +436,126 @@ function neck(){ // шея: закрывает то, что у затылка у
   for (let j = 0; j < ys.length - 1; j++) for (let i = 0; i < NU; i++) { const A = j * NU + i, B = j * NU + (i + 1) % NU; idx.push(A, A + NU, B, B, A + NU, B + NU); }
   return { p: new Float32Array(p), n: new Float32Array(n), idx: new Uint16Array(idx) };
 }
+const u8 = (b, o, n) => new Uint8Array(b.buffer, b.byteOffset + o, n);
+const f32 = (b, o, n) => new Float32Array(b.slice(o, o + n * 4).buffer);
+const u16 = (b, o, n) => new Uint16Array(b.slice(o, o + n * 2).buffer);
+const u32 = (b, o, n) => new Uint32Array(b.slice(o, o + n * 4).buffer);
 
 class Renderer {
-  constructor(assets, debug){
+  constructor(debug){
     const cvs = this.canvas = document.createElement("canvas");
     cvs.width = 720; cvs.height = 1280;
     const gl = this.gl = cvs.getContext("webgl2", { antialias: false, alpha: true, premultipliedAlpha: true, depth: true, preserveDrawingBuffer: false, powerPreference: "high-performance" });
     if (!gl) throw new Error("no webgl2");
     this.debug = debug;
-    this.pRigidDepth = program(gl, VS_RIGID, debug ? FS_GRAY : FS_DEPTH);
-    this.pBoundDepth = program(gl, VS_BOUND, debug ? FS_GRAY : FS_DEPTH);
+    this.gray = !!debug && !debug.nogray;        // отладка: голова-окклюдер видна серой
+    this.pRigidDepth = program(gl, VS_RIGID, this.gray ? FS_GRAY : FS_DEPTH);
+    this.pBoundDepth = program(gl, VS_BOUND, this.gray ? FS_GRAY : FS_DEPTH);
     this.pShell = program(gl, VS_RIGID, FS_SHELL);
     this.pDecal = program(gl, VS_BOUND, FS_DECAL);
     this.pStrip = program(gl, VS_STRIP, FS_DECAL);
     this.pProj = program(gl, VS_PROJ, FS_PROJ);
+    this.pSkin = program(gl, VS_SKIN, FS_SKIN);
+    this.pSpike = program(gl, VS_SPIKE, FS_SPIKE);
     this.lmTex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, this.lmTex);
     gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA32F, 478, 1);
     for (const k of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, k, gl.NEAREST);
     this.lmBuf = new Float32Array(478 * 4);
-    this.hairTex = texture(gl, assets.hair);
-    this.decalTex = texture(gl, assets.decal);
-    this.burnTex = texture(gl, assets.burnImg, true);
-    this.projTex = texture(gl, assets.projImg, true);
-
-    // оболочка кока из сетки радиусов (λ шаг 360/NL, μ от 12° шаг 2.5°)
-    const dv = new DataView(assets.shell.buffer, assets.shell.byteOffset, assets.shell.byteLength);
+    // кадр камеры для слоя кожи
+    this.camTex = gl.createTexture(); this.camW = this.camH = 0;
+    gl.bindTexture(gl.TEXTURE_2D, this.camTex);
+    for (const k of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, k, gl.LINEAR);
+    for (const k of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T]) gl.texParameteri(gl.TEXTURE_2D, k, gl.CLAMP_TO_EDGE);
+    this.neutralTex = solid(gl, [128, 128, 128, 0]); this.clearTex = solid(gl, [0, 0, 0, 0]);
+    // сетка лица: окклюдер, слой кожи, наклейки
+    const N = this.faceN = faceNormals(), uv = this.faceUV = new Float32Array(468 * 2), ids = this.faceIds = new Uint16Array(468);
+    for (let i = 0; i < 468; i++) { ids[i] = i; uv[i * 2] = CANON_UV[i * 2]; uv[i * 2 + 1] = 1 - CANON_UV[i * 2 + 1]; }
+    const occOff = new Float32Array(468);
+    for (let i = 0; i < 468; i++) { const ax = Math.abs(CANON_V[i * 3]); occOff[i] = -0.7 * clamp((ax - 5.5) / 2.1, 0, 1); }
+    this.faceOcc = vao(gl, [[1, N, 3], [2, uv, 2], [3, occOff, 1], [5, ids, 1, true]], new Uint16Array(CANON_F));
+    this.skinMesh = skinMesh(gl, N);
+    const sk = ellipsoid(HC, HA.map(a => a - 0.6)), nk = neck();   // больше нельзя: на широком лице череп вылезает сквозь виски и съедает бакенбарды
+    const rig = m => vao(gl, [[0, m.p, 3], [1, m.n, 3], [2, new Float32Array(m.p.length / 3 * 2), 2], [3, new Float32Array(m.p.length / 3).fill(1), 1]], m.idx);
+    this.skull = rig(sk); this.neck = rig(nk); this.ears = [rig(earOcc(-1)), rig(earOcc(1))];
+    this.useShell = !(debug && debug.noback);
+    this.looks = {};
+  }
+  // образ: набор слоёв из файлов его папки
+  addLook(name, A, cfg){
+    const gl = this.gl, own = { texs: [], vaos: [], bufs: [] };
+    const L = { name, cfg, own, stats: {} };
+    const lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
+    const grow = (x, y, z, k = 1) => { lo[0] = Math.min(lo[0], x * k); lo[1] = Math.min(lo[1], y * k); lo[2] = Math.min(lo[2], z * k); hi[0] = Math.max(hi[0], x * k); hi[1] = Math.max(hi[1], y * k); hi[2] = Math.max(hi[2], z * k); };
+    if (A["shell.bin"]) { L.shell = this._shell(A["shell.bin"], cfg.shell || {}, own, grow); L.hairTex = texture(gl, A["hair.webp"], false, own); L.stats.shellTris = L.shell.count / 3; }
+    if (A["proj.bin"]) {
+      // [nv, ni, nfit] uint32; nv×3 позиции; nv×2 uv; ni индексов; nfit точек лба + их места у образца; привязка к лицу
+      const pb = A["proj.bin"], ph = u32(pb, 0, 3), pnv = ph[0], pni = ph[1], pnf = ph[2];
+      let po = 12;
+      const pp = f32(pb, po, pnv * 3); po += pnv * 12;
+      const puv = f32(pb, po, pnv * 2); po += pnv * 8;
+      const pix = u32(pb, po, pni); po += pni * 4;
+      L.fitIdx = u32(pb, po, pnf); po += pnf * 4;
+      L.fitRef = f32(pb, po, pnf * 3); po += pnf * 12;
+      const pti = u16(pb, po, pnv * 3); po += pnv * 6;
+      const ptb = f32(pb, po, pnv * 3); po += pnv * 12;
+      const ptd = f32(pb, po, pnv * 3); po += pnv * 12;
+      const ptw = f32(pb, po, pnv);
+      L.proj = vao(gl, [[0, pp, 3], [2, puv, 2], [3, ptw, 1], [4, ptd, 3], [5, pti, 3, true], [6, ptb, 3]], pnv < 65536 ? new Uint16Array(pix) : pix, own);
+      L.projTex = texture(gl, A["proj.webp"], true, own);
+      for (let i = 0; i < pnv; i++) grow(pp[i * 3], pp[i * 3 + 1], pp[i * 3 + 2], 1.2);
+      L.stats.projTris = pni / 3;
+    }
+    if (A["decal.webp"]) {   // наклейка на сетку лица (усы Жоруна): чуть над кожей
+      const off = new Float32Array(468);
+      for (let i = 0; i < 468; i++) { const [x, y] = cv(i), ax = Math.abs(x); off[i] = (ax < 4.3 && y < -1.6 && y > -9.2) ? 0.22 : y > 5 ? 0.12 : 0.1; }
+      const tris = A["decal_tris.bin"];
+      L.decal = vao(gl, [[1, this.faceN, 3], [2, this.faceUV, 2], [3, off, 1], [5, this.faceIds, 1, true]], new Uint16Array(tris.buffer, tris.byteOffset, tris.byteLength / 2), own);
+      L.decalTex = texture(gl, A["decal.webp"], false, own);
+      L.stats.decalTris = L.decal.count / 3;
+    }
+    if (A["burns.bin"]) { L.burns = this._strip(A["burns.bin"], own); L.burnTex = texture(gl, A["burns.webp"], true, own); }
+    if (A["teeth.bin"]) { L.teeth = this._strip(A["teeth.bin"], own); L.teethTex = texture(gl, A["teeth.webp"], true, own); }
+    const det = A["det.webp"] || A["det.png"];
+    if (det || A["paint.webp"]) {
+      L.skin = true;
+      L.detTex = det ? texture(gl, det, true, own, false) : this.neutralTex;
+      L.paintTex = A["paint.webp"] ? texture(gl, A["paint.webp"], true, own) : this.clearTex;
+    }
+    if (A["spikes.bin"]) { L.spikes = this._spikes(A["spikes.bin"], own, grow, L); L.spikeTex = texture(gl, A["spikes.webp"], true, own); L.stats.spikes = L.spikes.n; }
+    L.box = [];
+    // всегда — всё лицо с полосой лба (грим и кожа доходят до линии волос)
+    grow(-9, -10.5, -7); grow(9, 12, 9);
+    for (const x of [lo[0], hi[0]]) for (const y of [Math.min(lo[1], -9.6), hi[1]]) for (const z of [lo[2], hi[2]]) L.box.push([x, y, z]);
+    this.looks[name] = L;
+    return L;
+  }
+  dropLook(name){
+    const L = this.looks[name], gl = this.gl;
+    if (!L) return;
+    for (const t of L.own.texs) gl.deleteTexture(t);
+    for (const b of L.own.bufs) gl.deleteBuffer(b);
+    for (const v of L.own.vaos) gl.deleteVertexArray(v);
+    delete this.looks[name];
+  }
+  // оболочка причёски из сетки радиусов (λ шаг 360/NL, μ от 12° шаг 2.5°)
+  _shell(bin, sc, own, grow){
+    const gl = this.gl, dv = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
     const NL = dv.getUint16(0, true), NM = dv.getUint16(2, true);
-    const r = j => dv.getUint16(4 + j * 2, true) / 1000, va = j => assets.shell[4 + NL * NM * 2 + j] / 255;
-    const cols = NL + 1, LS = 360 / NL;
-    const P = new Float32Array(NM * cols * 3), A = new Float32Array(NM * cols), UVs = new Float32Array(NM * cols * 2);
+    const r = j => dv.getUint16(4 + j * 2, true) / 1000, va = j => bin[4 + NL * NM * 2 + j] / 255;
+    const cols = NL + 1, LS = 360 / NL, cut = sc.cut != null ? sc.cut : 0.55, crown = sc.crown != null ? sc.crown : 1.1;
+    const f0 = sc.fade ? sc.fade[0] : 0.4, f1 = sc.fade ? sc.fade[1] : 0.12;
+    const P = new Float32Array(NM * cols * 3), Al = new Float32Array(NM * cols), UVs = new Float32Array(NM * cols * 2);
     const grid = (j, i) => {
       const ii = ((i % NL) + NL) % NL, jj = clamp(j, 0, NM - 1), d = dirLM(-180 + ii * LS, Math.min(179.8, 12 + jj * 2.5));
       const r0 = 1 / Math.hypot(d[0] / HA[0], d[1] / HA[1], d[2] / HA[2]), rr = r(jj * NL + ii);
-      // объём сзади и по бокам меньше фото (спереди край — пряди с фото), макушка ниже кока: когда голова
-      // наклонена к телефону, она не торчит над коком гладкой каской
-      return add(HC, mul(d, Math.max(r0 + 0.2, rr - 0.55 - 1.1 * Math.max(0, d[1]))));
+      // объём сзади и по бокам меньше фото (спереди край — пряди с фото), макушка ниже: когда голова
+      // наклонена к телефону, она не торчит над причёской гладкой каской
+      return add(HC, mul(d, Math.max(r0 + 0.2, rr - cut - crown * Math.max(0, d[1]))));
     };
     for (let j = 0; j < NM; j++) for (let i = 0; i < cols; i++) {
       const k = j * cols + i;
-      P.set(grid(j, i), k * 3); A[k] = va(j * NL + (i % NL));
+      P.set(grid(j, i), k * 3); Al[k] = va(j * NL + (i % NL));
       UVs[k * 2] = i / NL; UVs[k * 2 + 1] = (Math.min(179.8, 12 + j * 2.5) - 12) / 168;
     }
     const Nn = new Float32Array(NM * cols * 3);
@@ -346,62 +565,52 @@ class Renderer {
       if (dot(n, d) < 0) n = mul(n, -1);
       Nn.set(nrm(n), (j * cols + i) * 3);
     }
-    // спереди кок — это фото; объём нужен только там, куда фото не смотрит (бока и затылок при повороте)
+    // спереди причёска — это фото; объём нужен только там, куда фото не смотрит (бока и затылок при повороте)
     for (let k = 0; k < NM * cols; k++) {
-      const tt = clamp((Nn[k * 3 + 2] - 0.4) / (0.12 - 0.4), 0, 1);
-      A[k] *= tt * tt * (3 - 2 * tt);
+      const tt = clamp((Nn[k * 3 + 2] - f0) / (f1 - f0), 0, 1);
+      Al[k] *= tt * tt * (3 - 2 * tt);
     }
     const idx = [];
-    const lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
     for (let j = 0; j < NM - 1; j++) for (let i = 0; i < NL; i++) {
       const a = j * cols + i, b = a + 1, c = a + cols, d = c + 1;
-      if (Math.max(A[a], A[b], A[c], A[d]) <= 0.001) continue;
+      if (Math.max(Al[a], Al[b], Al[c], Al[d]) <= 0.001) continue;
       idx.push(a, c, b, b, c, d);
-      for (const q of [a, b, c, d]) for (let k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], P[q * 3 + k]); hi[k] = Math.max(hi[k], P[q * 3 + k]); }
+      for (const q of [a, b, c, d]) grow(P[q * 3], P[q * 3 + 1], P[q * 3 + 2]);
     }
-    // кок-проекция: [nv, ni, nfit] uint32; nv×3 позиции; nv×2 uv; ni индексов; nfit точек лба + их места у Жоруна
-    const pb = assets.proj, ph = new Uint32Array(pb.slice(0, 12).buffer), pnv = ph[0], pni = ph[1], pnf = ph[2];
-    let po = 12;
-    const pp = new Float32Array(pb.slice(po, po + pnv * 12).buffer); po += pnv * 12;
-    const puv = new Float32Array(pb.slice(po, po + pnv * 8).buffer); po += pnv * 8;
-    const pix = new Uint32Array(pb.slice(po, po + pni * 4).buffer); po += pni * 4;
-    this.fitIdx = new Uint32Array(pb.slice(po, po + pnf * 4).buffer); po += pnf * 4;
-    this.fitZh = new Float32Array(pb.slice(po, po + pnf * 12).buffer); po += pnf * 12;
-    const pti = new Uint16Array(pb.slice(po, po + pnv * 6).buffer); po += pnv * 6;
-    const ptb = new Float32Array(pb.slice(po, po + pnv * 12).buffer); po += pnv * 12;
-    const ptd = new Float32Array(pb.slice(po, po + pnv * 12).buffer); po += pnv * 12;
-    const ptw = new Float32Array(pb.slice(po, po + pnv * 4).buffer);
-    this.proj = vao(gl, [[0, pp, 3], [2, puv, 2], [3, ptw, 1], [4, ptd, 3], [5, pti, 3, true], [6, ptb, 3]], pnv < 65536 ? new Uint16Array(pix) : pix);
-    for (let i = 0; i < pnv; i++) for (let k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], pp[i * 3 + k] * 1.2); hi[k] = Math.max(hi[k], pp[i * 3 + k] * 1.2); }
-    this.useShell = !(debug && debug.noback);
-    this.box = [];
-    for (const x of [lo[0], hi[0]]) for (const y of [Math.min(lo[1], -9.6), hi[1]]) for (const z of [lo[2], hi[2]]) this.box.push([x, y, z]);
     // направление прядей — от лба к затылку (вдоль μ)
     const Tt = new Float32Array(NM * cols * 3);
     for (let j = 0; j < NM; j++) for (let i = 0; i < cols; i++) Tt.set(nrm(sub(grid(j + 1, i), grid(j - 1, i))), (j * cols + i) * 3);
-    this.shell = vao(gl, [[0, P, 3], [1, Nn, 3], [2, UVs, 2], [3, A, 1], [4, Tt, 3]], new Uint32Array(idx));
-    // сетка лица: наклейка и окклюдер
-    const N = faceNormals(), uv = new Float32Array(468 * 2), off = new Float32Array(468), ids = new Uint16Array(468);
-    for (let i = 0; i < 468; i++) {
-      ids[i] = i; uv[i * 2] = CANON_UV[i * 2]; uv[i * 2 + 1] = 1 - CANON_UV[i * 2 + 1];
-      const [x, y] = cv(i), ax = Math.abs(x);
-      off[i] = (ax < 4.3 && y < -1.6 && y > -9.2) ? 0.22 : y > 5 ? 0.12 : 0.1;   // усы чуть выше кожи — у них есть объём
-    }
-    this.decal = vao(gl, [[1, N, 3], [2, uv, 2], [3, off, 1], [5, ids, 1, true]], new Uint16Array(assets.tris));
-    const occOff = new Float32Array(468);
-    for (let i = 0; i < 468; i++) { const ax = Math.abs(CANON_V[i * 3]); occOff[i] = -0.7 * clamp((ax - 5.5) / 2.1, 0, 1); }
-    this.faceOcc = vao(gl, [[1, N, 3], [2, uv, 2], [3, occOff, 1], [5, ids, 1, true]], new Uint16Array(CANON_F));
-    const sk = ellipsoid(HC, HA.map(a => a - 0.6)), nk = neck();   // больше нельзя: на широком лице череп вылезает сквозь виски и съедает бакенбарды
-    const rig = m => vao(gl, [[0, m.p, 3], [1, m.n, 3], [2, new Float32Array(m.p.length / 3 * 2), 2], [3, new Float32Array(m.p.length / 3).fill(1), 1]], m.idx);
-    this.skull = rig(sk); this.neck = rig(nk); this.ears = [rig(earOcc(-1)), rig(earOcc(1))];
-    // бакенбарды: [nv, ni] uint16; nv×(i0, i1) uint16; nv×(w, d3, n3, uv2) float32; ni индексов
-    const bb = assets.burns, nv = bb[0] | (bb[1] << 8), ni = bb[2] | (bb[3] << 8);
-    const bi = new Uint16Array(bb.slice(4, 4 + nv * 4).buffer), bf = new Float32Array(bb.slice(4 + nv * 4, 4 + nv * 40).buffer);
-    const bidx = new Uint16Array(bb.slice(4 + nv * 40, 4 + nv * 40 + ni * 2).buffer);
+    return vao(gl, [[0, P, 3], [1, Nn, 3], [2, UVs, 2], [3, Al, 1], [4, Tt, 3]], new Uint32Array(idx), own);
+  }
+  // полоса: [nv, ni] uint16; nv×(i0, i1) uint16; nv×(w, d3, n3, uv2) float32; ni индексов
+  _strip(bb, own){
+    const nv = bb[0] | (bb[1] << 8), ni = bb[2] | (bb[3] << 8);
+    const bi = u16(bb, 4, nv * 2), bf = f32(bb, 4 + nv * 4, nv * 9), bidx = u16(bb, 4 + nv * 40, ni);
     const bw = new Float32Array(nv), bd = new Float32Array(nv * 3), bn = new Float32Array(nv * 3), buv = new Float32Array(nv * 2);
     for (let i = 0; i < nv; i++) { const o = i * 9; bw[i] = bf[o]; bd.set(bf.subarray(o + 1, o + 4), i * 3); bn.set(bf.subarray(o + 4, o + 7), i * 3); buv.set(bf.subarray(o + 7, o + 9), i * 2); }
-    this.burns = vao(gl, [[1, bn, 3], [2, buv, 2], [4, bd, 3], [5, bi, 2, true], [6, bw, 1]], bidx);
-    this.stats = { shellTris: idx.length / 3, decalTris: assets.tris.length / 3, burnTris: ni / 3 };
+    return vao(this.gl, [[1, bn, 3], [2, buv, 2], [4, bd, 3], [5, bi, 2, true], [6, bw, 1]], bidx, own);
+  }
+  // шипы: [nv, ni, ns, nfit] uint32; nv×(c3, t3, uv2, w, яркость, плотность) float32; ni uint16 индексов; ns×(начало, число, середина3);
+  // nfit точек лба + их места в осях головы (подгонка под голову человека, как у причёски)
+  _spikes(sb, own, grow, L){
+    const h = u32(sb, 0, 4), nv = h[0], ni = h[1], ns = h[2], nf = h[3];
+    let o = 16;
+    const vf = f32(sb, o, nv * 11); o += nv * 44;
+    const idx = u16(sb, o, ni); o += ni * 2; o += (4 - (o & 3)) & 3;
+    const sp = [];
+    const sd = new DataView(sb.buffer, sb.byteOffset + o, ns * 20);
+    for (let k = 0; k < ns; k++) sp.push({ a: sd.getUint32(k * 20, true), n: sd.getUint32(k * 20 + 4, true), m: [sd.getFloat32(k * 20 + 8, true), sd.getFloat32(k * 20 + 12, true), sd.getFloat32(k * 20 + 16, true)] });
+    o += ns * 20;
+    if (nf) { L.fitIdx = u32(sb, o, nf); o += nf * 4; L.fitRef = f32(sb, o, nf * 3); }
+    const C = new Float32Array(nv * 3), T = new Float32Array(nv * 3), UV = new Float32Array(nv * 2), W = new Float32Array(nv), SH = new Float32Array(nv * 2);
+    for (let i = 0; i < nv; i++) {
+      const q = i * 11;
+      C.set(vf.subarray(q, q + 3), i * 3); T.set(vf.subarray(q + 3, q + 6), i * 3); UV.set(vf.subarray(q + 6, q + 8), i * 2); W[i] = vf[q + 8]; SH[i * 2] = vf[q + 9]; SH[i * 2 + 1] = vf[q + 10];
+      const w = Math.abs(W[i]); grow(C[i * 3] - w, C[i * 3 + 1] - w, C[i * 3 + 2] - w); grow(C[i * 3] + w, C[i * 3 + 1] + w, C[i * 3 + 2] + w);
+    }
+    const m = vao(this.gl, [[0, C, 3], [1, T, 3], [2, UV, 2], [3, W, 1], [4, SH, 2]], idx.slice(), own, true);
+    m.src = idx; m.sp = sp; m.n = ns; m.order = ""; m.buf = new Uint16Array(ni);
+    return m;
   }
   upload(L){
     const b = this.lmBuf;
@@ -410,17 +619,26 @@ class Renderer {
     gl.bindTexture(gl.TEXTURE_2D, this.lmTex);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 478, 1, gl.RGBA, gl.FLOAT, b);
   }
-  bbox(pose, view, L){
+  uploadCam(src){
+    const gl = this.gl, w = src.videoWidth || src.naturalWidth || src.width, h = src.videoHeight || src.naturalHeight || src.height;
+    if (!w || !h) return false;
+    gl.bindTexture(gl.TEXTURE_2D, this.camTex);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    if (w !== this.camW || h !== this.camH) { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src); this.camW = w; this.camH = h; }
+    else gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, src);
+    return true;
+  }
+  bbox(L, pose, view, lm){
     let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
     const put = (x, y) => { const cx = view.dx + x * view.k, cy = view.dy + y * view.k; x0 = Math.min(x0, cx); x1 = Math.max(x1, cx); y0 = Math.min(y0, cy); y1 = Math.max(y1, cy); };
-    for (const p of this.box) { const q = Rmul(pose.R, p); put(q[0] * pose.s + pose.t[0], q[1] * pose.s + pose.t[1]); }
-    for (const i of [10, 152, 234, 454]) put(L[i * 3], L[i * 3 + 1]);
+    for (const p of L.box) { const q = Rmul(pose.R, p); put(q[0] * pose.s + pose.t[0], q[1] * pose.s + pose.t[1]); }
+    for (const i of [10, 152, 234, 454]) put(lm[i * 3], lm[i * 3 + 1]);
     const pad = 6;
     x0 = Math.floor(clamp(x0 - pad, 0, view.W)); y0 = Math.floor(clamp(y0 - pad, 0, view.H));
     x1 = Math.ceil(clamp(x1 + pad, 0, view.W)); y1 = Math.ceil(clamp(y1 + pad, 0, view.H));
     return [x0, y0, x1 - x0, y1 - y0];
   }
-  render(pose, view, exposure, box, fit){
+  render(L, pose, view, exposure, box, fit, skin){
     const gl = this.gl, c = this.canvas;
     if (c.width !== view.W || c.height !== view.H) { c.width = view.W; c.height = view.H; }
     const [bx, by, bw, bh] = box;
@@ -431,7 +649,8 @@ class Renderer {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.disable(gl.CULL_FACE);
     const R = pose.R, Rc = [R[0], R[3], R[6], R[1], R[4], R[7], R[2], R[5], R[8]];
-    const use = (pr) => {
+    const K = fit ? fit.K : [1, 1, 1], B = fit ? fit.B : [0, 0, 0];
+    const use = (pr, withFit) => {
       const u = pr.u;
       gl.useProgram(pr.p);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.lmTex); gl.uniform1i(u.u_lm, 0);
@@ -439,37 +658,57 @@ class Renderer {
       gl.uniform4f(u.u_view, view.dx, view.dy, view.k, 1 / (pose.s * 40));
       gl.uniform2f(u.u_canvas, c.width, c.height); gl.uniform1f(u.u_zc, pose.t[2]);
       if (u.u_exp) gl.uniform1f(u.u_exp, exposure);
-      if (u.u_K) { gl.uniform3f(u.u_K, 1, 1, 1); gl.uniform3f(u.u_B, 0, 0, 0); }
+      if (u.u_K) { gl.uniform3fv(u.u_K, withFit ? K : [1, 1, 1]); gl.uniform3fv(u.u_B, withFit ? B : [0, 0, 0]); }
       return u;
     };
+    const tex = (u, unit, t) => { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(u, unit); };
     const draw = m => { gl.bindVertexArray(m.o); gl.drawElements(gl.TRIANGLES, m.count, m.type, 0); };
+    const dbg = this.debug || {};
     // 1) окклюдеры: лицо, череп и шея — только глубина (в отладке — серая голова)
     gl.disable(gl.BLEND);
-    if (!this.debug) gl.colorMask(false, false, false, false);
-    let u = use(this.pBoundDepth); gl.uniform1f(u.u_off, this.debug ? 0 : -0.25); draw(this.faceOcc);
-    use(this.pRigidDepth); draw(this.skull); draw(this.neck); for (const e of this.ears) draw(e);
+    if (!this.gray) gl.colorMask(false, false, false, false);
+    let u = use(this.pBoundDepth); gl.uniform1f(u.u_off, this.gray ? 0 : -0.25); draw(this.faceOcc);
     gl.colorMask(true, true, true, true);
-    // 2) кок
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    if (this.useShell) {
-      u = use(this.pShell);
-      if (fit) { gl.uniform3fv(u.u_K, fit.K); gl.uniform3fv(u.u_B, fit.B); }
-      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.hairTex); gl.uniform1i(u.u_tex, 1);
-      draw(this.shell);
+    // 2) кожа: мешки, морщины, прыщи, грим — по кадру камеры (до черепа: он у глаз и переносицы выступает из лица)
+    if (L.skin && skin && !dbg.noskin) {
+      gl.depthMask(false);
+      u = use(this.pSkin);
+      tex(u.u_det, 1, L.detTex); tex(u.u_paint, 2, L.paintTex); tex(u.u_cam, 3, this.camTex);
+      gl.uniform4fv(u.u_cm, skin.cm); gl.uniform3fv(u.u_skin, skin.rgb); gl.uniform1f(u.u_light, skin.light);
+      gl.uniform2f(u.u_camInv, 1 / this.camW, 1 / this.camH); gl.uniform1f(u.u_fill, L.cfg.fill ? 1 : 0);
+      draw(this.skinMesh);
+      gl.depthMask(true);
     }
-    // 3) усы, бакенбарды, прядь на лбу
+    if (!this.gray) gl.colorMask(false, false, false, false);
+    use(this.pRigidDepth); draw(this.skull); draw(this.neck);
+    if (L.cfg.ears !== false) for (const e of this.ears) draw(e);
+    gl.colorMask(true, true, true, true);
+    // 3) объём причёски (бока и затылок)
+    if (L.shell && this.useShell) {
+      u = use(this.pShell, true);
+      gl.uniform1f(u.u_spec, L.cfg.spec != null ? L.cfg.spec : 0.075);
+      tex(u.u_tex, 1, L.hairTex);
+      draw(L.shell);
+    }
     gl.depthMask(false);
-    u = use(this.pDecal); gl.uniform1f(u.u_off, 0);
-    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.decalTex); gl.uniform1i(u.u_tex, 1);
-    if (!(this.debug && this.debug.nodecal)) draw(this.decal);
-    u = use(this.pStrip);
-    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.burnTex); gl.uniform1i(u.u_tex, 1);
-    if (!(this.debug && this.debug.nodecal)) draw(this.burns);
-    // 4) кок — фото Жоруна поверх всего, что за ним
-    u = use(this.pProj);
-    gl.uniform3fv(u.u_K, fit ? fit.K : [1, 1, 1]); gl.uniform3fv(u.u_B, fit ? fit.B : [0, 0, 0]);
-    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.projTex); gl.uniform1i(u.u_tex, 1);
-    if (!(this.debug && this.debug.noshell)) draw(this.proj);
+    // 4) наклейки на лицо: усы, бакенбарды, зубы
+    if (L.decal && !dbg.nodecal) { u = use(this.pDecal); gl.uniform1f(u.u_off, 0); tex(u.u_tex, 1, L.decalTex); draw(L.decal); }
+    if (L.burns && !dbg.nodecal) { u = use(this.pStrip); tex(u.u_tex, 1, L.burnTex); draw(L.burns); }
+    if (L.teeth && !dbg.nodecal) { u = use(this.pStrip); tex(u.u_tex, 1, L.teethTex); draw(L.teeth); }
+    // 5) шипы ирокеза — от дальних к ближним
+    if (L.spikes) {
+      const m = L.spikes, zs = m.sp.map((s, k) => [R[6] * s.m[0] + R[7] * s.m[1] + R[8] * s.m[2], k]).sort((a, b) => b[0] - a[0]);
+      const order = zs.map(z => z[1]).join(",");
+      if (order !== m.order) {
+        m.order = order; let o = 0;
+        for (const [, k] of zs) { const s = m.sp[k]; m.buf.set(m.src.subarray(s.a, s.a + s.n), o); o += s.n; }
+        gl.bindVertexArray(m.o); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ib); gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, m.buf);
+      }
+      u = use(this.pSpike, true); tex(u.u_tex, 1, L.spikeTex); draw(m);
+    }
+    // 6) причёска с фото — поверх всего, что за ней
+    if (L.proj && !dbg.noshell) { u = use(this.pProj, true); tex(u.u_tex, 1, L.projTex); draw(L.proj); }
     gl.depthMask(true);
     gl.bindVertexArray(null);
     gl.disable(gl.SCISSOR_TEST);
@@ -519,16 +758,13 @@ async function makeTracker(mode, delegate, onProgress, useWorker){
 }
 
 /* ---------------- снаружи */
-export async function createMask({ mode = "VIDEO", delegate = null, debug = false, onProgress = null, worker = true, fresh = true, ring: ringSize = 8, maxDelay = 240 } = {}){
-  const [projImg, proj, hair, decal, burnImg, burns, shell, tris] = await Promise.all([
-    loadImage(BASE + "zhorun/proj.webp" + VQ), fetchBytes(BASE + "zhorun/proj.bin" + VQ),
-    loadImage(BASE + "zhorun/hair.webp" + VQ), loadImage(BASE + "zhorun/decal.webp" + VQ), loadImage(BASE + "zhorun/burns.webp" + VQ), fetchBytes(BASE + "zhorun/burns.bin" + VQ),
-    fetchBytes(BASE + "zhorun/shell.bin" + VQ), fetchBytes(BASE + "zhorun/decal_tris.bin" + VQ)]);
-  const r = new Renderer({ projImg, proj, hair, decal, burnImg, burns, shell, tris: new Uint16Array(tris.buffer, tris.byteOffset, tris.byteLength / 2) }, debug);
-  const tr = await makeTracker(mode, delegate, onProgress, worker);
+export async function createMask({ look = "zhorun", mode = "VIDEO", delegate = null, debug = false, onProgress = null, worker = true, fresh = true, ring: ringSize = 8, maxDelay = 240 } = {}){
+  if (!LOOKS[look]) look = "zhorun";
+  const r = new Renderer(debug);
+  const [, tr] = await Promise.all([loadLook(look, !!(debug && debug.lenient)).then(A => r.addLook(look, A, LOOKS[look])), makeTracker(mode, delegate, onProgress, worker)]);
   const sm = new Smoother();
   const raw = new Float32Array(478 * 3);
-  const lum = document.createElement("canvas"); lum.width = lum.height = 8;
+  const lum = document.createElement("canvas"); lum.width = 32; lum.height = 8;
   const lg = lum.getContext("2d", { willReadFrequently: true });
   const small = document.createElement("canvas"), sg = small.getContext("2d");
   // кольцо последних кадров камеры: на экран идёт кадр чуть из прошлого — тот, для которого лицо уже найдено,
@@ -546,7 +782,18 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
   }
 
   const M = {
-    raw, get delegate(){ return tr.delegate; }, kind: tr.kind, stats: r.stats,
+    raw, get delegate(){ return tr.delegate; }, kind: tr.kind,
+    look, looks: LOOK_NAMES, _lp: {}, skin: [0.7, 0.52, 0.44],
+    get stats(){ const L = r.looks[this.look]; return L ? L.stats : {}; },
+    // сменить образ: трекер тот же, грузятся только файлы образа (сотни КБ)
+    setLook(name){
+      if (!LOOKS[name]) return Promise.reject(new Error("unknown look " + name));
+      this._want = name;
+      const done = () => { if (this._want === name) { this.look = name; for (const k of Object.keys(r.looks)) if (k !== name) r.dropLook(k); } return name; };
+      if (r.looks[name]) return Promise.resolve(done());
+      const p = this._lp[name] || (this._lp[name] = loadLook(name).then(A => { if (!r.looks[name]) r.addLook(name, A, LOOKS[name]); }).finally(() => { delete this._lp[name]; }));
+      return p.then(done);
+    },
     found: false, vis: 0, exposure: 1, pose: null, lm: null, srcW: 0, srcH: 0, miss: 0,
     latency: 0, detMs: 0, results: 0, lastResult: 0, inflight: null, rate: 0, bmpMs: 0,
     delay: 90, frozen: false, busy: false, hist: [], sent: -1,
@@ -704,18 +951,30 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
         this._tuneDone = true;
       }
     },
-    _light(src){
+    // свет и цвет кожи: среднее по лицу (яркость) и три пятна кожи — лоб и щёки (цвет для грима)
+    _light(src, direct = false){
       if (!src) return;
       try {
         const L = this.lm, xs = [234, 454, 10, 152].map(i => L[i * 3]), ys = [234, 454, 10, 152].map(i => L[i * 3 + 1]);
         const x0 = Math.max(0, Math.min(...xs)), x1 = Math.min(this.srcW, Math.max(...xs)), y0 = Math.max(0, Math.min(...ys)), y1 = Math.min(this.srcH, Math.max(...ys));
         if (x1 - x0 < 8 || y1 - y0 < 8) return;
+        lg.clearRect(0, 0, 32, 8);
         lg.drawImage(src, x0, y0, x1 - x0, y1 - y0, 0, 0, 8, 8);
-        const d = lg.getImageData(0, 0, 8, 8).data;
+        const ps = Math.max(2, (this.pose ? this.pose.s : 10) * 0.7);
+        [151, 50, 280].forEach((i, k) => lg.drawImage(src, L[i * 3] - ps, L[i * 3 + 1] - ps, 2 * ps, 2 * ps, 8 + k * 8, 0, 8, 8));
+        const d = lg.getImageData(0, 0, 32, 8).data;
         let s = 0;
-        for (let i = 0; i < d.length; i += 4) s += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
-        const Y = s / 64 / 255;
-        this.exposure = this.exposure * 0.5 + clamp(Math.pow(Y / 0.52, 0.7), 0.55, 1.35) * 0.5;
+        const pc = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+        for (let y = 0; y < 8; y++) for (let x = 0; x < 32; x++) {
+          const i = (y * 32 + x) * 4;
+          if (x < 8) s += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+          else { const p = pc[(x >> 3) - 1]; p[0] += d[i]; p[1] += d[i + 1]; p[2] += d[i + 2]; }
+        }
+        const Y = s / 64 / 255, ex = clamp(Math.pow(Y / 0.52, 0.7), 0.55, 1.35);
+        this.exposure = direct ? ex : this.exposure * 0.5 + ex * 0.5;
+        const med = k => { const v = pc.map(p => p[k] / 64 / 255).sort((a, b) => a - b); return v[1]; };
+        const sk = [med(0), med(1), med(2)];
+        if (sk[0] + sk[1] + sk[2] > 0.06) this.skin = direct ? sk : this.skin.map((v, k) => v * 0.6 + sk[k] * 0.4);
       } catch (e) {}
     },
     trackImage(img){
@@ -725,29 +984,40 @@ export async function createMask({ mode = "VIDEO", delegate = null, debug = fals
       const lm = new Float32Array(f.length * 3);
       for (let i = 0; i < f.length; i++) { lm[i * 3] = f[i].x; lm[i * 3 + 1] = f[i].y; lm[i * 3 + 2] = f[i].z; }
       this._ingest(lm, img.naturalWidth || img.width, img.naturalHeight || img.height, 0, false);
+      this._light(img, true);
       this.vis = 1;
       return true;
     },
     // view: как кадр лёг на холст (как coverDraw): dx, dy, k — пикселей холста на пиксель кадра; live — поверх живого видео
-    draw(g, view, alpha = 1, tFrame = null){
+    // src — кадр, который лежит на холсте под маской (нужен слою кожи)
+    draw(g, view, alpha = 1, tFrame = null, src = null){
+      const LK = r.looks[this.look];
+      if (!LK) return;
       const P = tFrame != null && this.hist.length ? this._poseAt(tFrame) : (this.pose ? { s: this.pose.s, q: this.pose.q, R: this.pose.R, t: this.pose.t, lm: this.lm } : null);
       this.vis += ((this.found && P ? 1 : 0) - this.vis) * 0.4;
       if (this.vis < 0.02 || !P) return;
       const pose = { s: P.s, R: P.R, t: P.t, q: P.q }, lm = P.lm;
       r.upload(lm);
-      const box = r.bbox(pose, view, lm);
+      const box = r.bbox(LK, pose, view, lm);
       if (box[2] < 2 || box[3] < 2) return;
-      r.render(pose, view, this.exposure, box, this._fit());
+      let skin = null;
+      if (LK.skin && src && r.uploadCam(src)) {
+        const Ys = 0.299 * this.skin[0] + 0.587 * this.skin[1] + 0.114 * this.skin[2];
+        skin = { cm: [view.dx, view.dy, 1 / (view.k * r.camW), 1 / (view.k * r.camH)], rgb: this.skin, light: clamp(0.55 + 0.6 * Ys, 0.75, 1.05) };
+      }
+      r.render(LK, pose, view, this.exposure, box, this._fit(LK), skin);
       g.save();
       g.globalAlpha = Math.min(1, this.vis) * alpha;
       if (view.mirror) { g.translate(view.W, 0); g.scale(-1, 1); }
       g.drawImage(r.canvas, box[0], box[1], box[2], box[3], box[0], box[1], box[2], box[3]);
       g.restore();
     },
-    // кок Жоруна → под лоб и виски этого человека: x, y — масштаб и сдвиг, z — сдвиг (по сглаженной форме лица)
-    _fit(){
-      const d = sm.def, I = r.fitIdx, Z = r.fitZh, n = I.length;
-      if (!d) return null;
+    // причёска образца → под лоб и виски этого человека: x, y — масштаб и сдвиг, z — сдвиг (по сглаженной форме лица)
+    _fit(LK){
+      LK = LK || r.looks[this.look];
+      const d = sm.def;
+      if (!d || !LK || !LK.fitIdx) return null;
+      const I = LK.fitIdx, Z = LK.fitRef, n = I.length;
       const K = [1, 1, 1], B = [0, 0, 0];
       for (let k = 0; k < 3; k++) {
         let mz = 0, mu = 0;
