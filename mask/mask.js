@@ -7,7 +7,7 @@
 import { CANON_V, CANON_F, CANON_UV } from "./face-canon.js";
 
 const BASE = new URL("./", import.meta.url).href;
-const VQ = "?v=9";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
+const VQ = "?v=10";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
 const DEG = Math.PI / 180;
 
 /* ---------------- математика */

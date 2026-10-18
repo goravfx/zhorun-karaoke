@@ -249,7 +249,6 @@ button{cursor:pointer;background:none;border:0}
       <button class="mask-opt" type="button" role="radio" data-mask="none" aria-checked="false"><i aria-hidden="true"><svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M6.4 17.6 17.6 6.4"/></g></svg></i>Без маски</button>
       <button class="mask-opt" type="button" role="radio" data-mask="zhorun" aria-checked="true"><i aria-hidden="true" style="background-image:url(assets/mask-zhorun.jpg)"><b class="pct" hidden></b></i>Жорун</button>
       <button class="mask-opt" type="button" role="radio" data-mask="drummer" aria-checked="false"><i aria-hidden="true" style="background-image:url(assets/mask-drummer.jpg)"><b class="pct" hidden></b></i>Барабанщик</button>
-      <button class="mask-opt" type="button" role="radio" data-mask="accordion" aria-checked="false"><i aria-hidden="true" style="background-image:url(assets/mask-accordion.jpg)"><b class="pct" hidden></b></i>Аккордеонист</button>
       <button class="mask-opt" type="button" role="radio" data-mask="trumpet" aria-checked="false"><i aria-hidden="true" style="background-image:url(assets/mask-trumpet.jpg)"><b class="pct" hidden></b></i>Трубач</button>
       <button class="mask-opt" type="button" role="radio" data-mask="guitar" aria-checked="false"><i aria-hidden="true" style="background-image:url(assets/mask-guitar.jpg)"><b class="pct" hidden></b></i>Гитаристка</button>
     </div>
@@ -927,7 +926,7 @@ async function openCamera(){
 }
 
 /* ---------------- маски участников: держатся на лице (mask/mask.js грузится только для камеры) */
-const MASK_LOOKS = ["zhorun", "drummer", "accordion", "trumpet", "guitar"];
+const MASK_LOOKS = ["zhorun", "drummer", "trumpet", "guitar"];
 const MASK = {want: (() => { const v = PARAMS.get("mask") || (() => { try { return localStorage.getItem("mask"); } catch (e) { return null; } })(); return v === "none" || MASK_LOOKS.includes(v) ? v : "zhorun"; })(), obj: null, loading: null, failed: false, progress: 0, lookBusy: null,
   unsupported: (() => { try { return !document.createElement("canvas").getContext("webgl2"); } catch (e) { return true; } })()};
 function maskActive(){ return MASK.want !== "none" && !!MASK.obj && S.cam && S.mode === "record"; }
@@ -935,7 +934,7 @@ function maskBusy(){ return MASK.want !== "none" && (!!MASK.loading || !!MASK.lo
 function loadMask(){
   if (MASK.obj || MASK.loading || MASK.unsupported) return MASK.loading;
   MASK.failed = false; MASK.progress = 0;
-  MASK.loading = import("./mask/mask.js?v=9")
+  MASK.loading = import("./mask/mask.js?v=10")
     .then(m => m.createMask({look: MASK.want !== "none" ? MASK.want : "zhorun", onProgress: p => { MASK.progress = p; updateMaskUI(); }, ...(PARAMS.has("ring") ? {ring: +PARAMS.get("ring"), maxDelay: +(PARAMS.get("maxdelay") || 240)} : {})}))
     .then(obj => { MASK.obj = obj; if (MASK.want !== "none" && obj.look !== MASK.want) setLook(MASK.want); })
     .catch(e => {
