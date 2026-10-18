@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Спой на страпонском — караоке группы «Жорун»</title>
-<meta name="description" content="Караоке на «Мандалупу»: слова подсвечиваются в такт, а в конце получается вертикальный ролик для VK Клипов.">
+<meta name="description" content="Караоке на песни группы «Жорун»: слова подсвечиваются в такт, а в конце получается вертикальный ролик для VK Клипов.">
 <meta property="og:title" content="Спой на страпонском">
-<meta property="og:description" content="Караоке на «Мандалупу» группы «Жорун». Запиши ролик со своим голосом.">
+<meta property="og:description" content="Караоке на песни группы «Жорун». Выбери песню и запиши ролик со своим голосом.">
 <meta property="og:image" content="https://goravfx.github.io/zhorun-karaoke/assets/og.jpg">
 <meta property="og:url" content="https://goravfx.github.io/zhorun-karaoke/">
 <meta name="twitter:card" content="summary_large_image">
@@ -63,6 +63,24 @@ button{cursor:pointer;background:none;border:0}
 .song img{width:56px;height:56px;border-radius:8px;flex:none;box-shadow:0 0 0 1px rgba(242,232,213,.18)}
 .song b{display:block;font-weight:600;font-size:16px;line-height:1.25}
 .song span{display:block;font-size:13.5px;color:var(--dust);line-height:1.35}
+.song.pick{width:100%;padding:8px 10px 8px 8px;margin:0 0 16px;border:1px solid rgba(242,232,213,.22);border-radius:14px;background:rgba(13,9,7,.55);color:var(--ivory);text-align:left;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.song.pick>div{flex:1;min-width:0}
+.song.pick b,.song.pick span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.song .more{display:flex;align-items:center;gap:2px;flex:none;font-size:14px;font-weight:500;color:var(--gold-hi)}
+.song .more svg{width:16px;height:16px;transform:rotate(180deg)}
+/* ---------- выбор песни */
+.songs .wrap{padding-top:calc(env(safe-area-inset-top) + 14px);padding-bottom:calc(env(safe-area-inset-bottom) + 24px)}
+.songs h2{font:400 34px/1.05 var(--display);margin:6px 0 18px}
+.song-list{display:flex;flex-direction:column;gap:8px}
+.song-row{display:flex;align-items:center;gap:12px;width:100%;min-height:72px;padding:9px 12px 9px 9px;border:1px solid var(--line);border-radius:14px;background:#1a1310;color:var(--ivory);text-align:left;transition:border-color .2s ease}
+.song-row img{width:52px;height:52px;border-radius:8px;flex:none;object-fit:cover;background:#2a1d16}
+.song-row .t{flex:1;min-width:0}
+.song-row b{display:block;font-weight:600;font-size:16px;line-height:1.25}
+.song-row small{display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.35;color:var(--dust);margin-top:2px}
+.song-row em{font-style:normal;font-size:11.5px;font-weight:600;letter-spacing:.02em;color:var(--black);background:var(--gold);border-radius:5px;padding:1px 6px}
+.song-row .tick{width:22px;height:22px;flex:none;border-radius:50%;border:1.5px solid rgba(242,232,213,.3)}
+.song-row[aria-checked="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+.song-row[aria-checked="true"] .tick{border-color:var(--gold);background:var(--gold) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M6 11.5l3.2 3.2L16 8' fill='none' stroke='%230d0907' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat}
 .intro-body{position:relative;z-index:1;padding-bottom:calc(env(safe-area-inset-bottom) + 22px)}
 .intro h1{font:400 clamp(38px,11vw,50px)/1.02 var(--display);letter-spacing:-.01em;margin-bottom:14px;text-wrap:balance}
 .lead{color:rgba(242,232,213,.82);font-size:16px;max-width:34ch;margin-bottom:22px}
@@ -192,11 +210,20 @@ button{cursor:pointer;background:none;border:0}
     <div class="intro-body wrap">
       <h1 id="intro-title">Спой на&nbsp;страпонском</h1>
       <p class="lead">Пой поверх клипа или снимай себя, а&nbsp;в&nbsp;конце забирай готовый ролик для VK&nbsp;Клипов.</p>
-      <div class="song"><img src="assets/cover-mandalupa-240.jpg" alt="" width="56" height="56"><div><b>«Мандалупа»</b><span>Песня из&nbsp;клипа, 1:49</span></div></div>
+      <button class="song pick" id="song-pick" type="button"><img id="song-cover" src="assets/cover-mandalupa-240.jpg" alt="" width="56" height="56"><div><b id="song-title">«Мандалупа»</b><span id="song-meta">Песня из&nbsp;клипа, 1:49</span></div><span class="more">Сменить<svg aria-hidden="true"><use href="#chev"/></svg></span></button>
       <button class="btn primary" id="go-record" type="button"><span class="dot" aria-hidden="true"></span>Записать ролик</button>
       <button class="btn ghost" id="go-rehearse" type="button">Сначала порепетировать</button>
       <p class="notice" id="inapp-notice" hidden>Ты открыл страницу внутри приложения. Если камера не включится, открой её в&nbsp;Safari или Chrome: нажми ⋯ вверху и&nbsp;выбери «Открыть в&nbsp;браузере».</p>
       <p class="fine">Ролик собирается прямо в&nbsp;телефоне и&nbsp;никуда не&nbsp;отправляется.</p>
+    </div>
+  </section>
+
+  <!-- Выбор песни -->
+  <section class="screen songs" id="songs" aria-labelledby="songs-title">
+    <div class="wrap">
+      <div class="topbar"><button class="back" type="button" data-go="intro"><svg aria-hidden="true"><use href="#chev"/></svg>Назад</button></div>
+      <h2 id="songs-title">Выбери песню</h2>
+      <div class="song-list" id="song-list" role="radiogroup" aria-labelledby="songs-title"></div>
     </div>
   </section>
 
@@ -213,7 +240,7 @@ button{cursor:pointer;background:none;border:0}
             <span class="face self"><svg class="mirror" viewBox="0 0 40 40" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5"><rect x="9" y="3" width="22" height="34" rx="4"/><circle cx="20" cy="17" r="5"/><path d="M12.5 31c1.6-4 4.2-6 7.5-6s5.9 2 7.5 6"/></g></svg>
               <b>Ты</b><small>Фронтальная камера, можно с&nbsp;усами и&nbsp;коком Жоруна</small></span></label>
           <label class="card"><input type="radio" name="cam" value="off">
-            <span class="face clip"><b>Клип</b><small>Поёшь поверх клипа «Мандалупа»</small></span></label>
+            <span class="face clip" id="bg-card"><b id="bg-card-title">Клип</b><small id="bg-card-text">Поёшь поверх клипа «Мандалупа»</small></span></label>
         </div>
       </fieldset>
 
@@ -265,7 +292,7 @@ button{cursor:pointer;background:none;border:0}
       <h2 id="result-title">Готово</h2>
       <video id="result-video" playsinline controls loop></video>
       <button class="btn primary" id="save" type="button">Сохранить ролик</button>
-      <a class="btn outline" id="download" download="zhorun-mandalupa.mp4">Скачать файл</a>
+      <a class="btn outline" id="download" download="zhorun.mp4">Скачать файл</a>
       <button class="btn ghost" id="retake" type="button">Перепеть</button>
       <p class="fine">Выложи ролик в&nbsp;VK&nbsp;Клипы с&nbsp;хэштегом <span class="tag">#спойнастрапонском</span> и&nbsp;отметь группу «Жорун».</p>
       <p class="fine" id="result-note" hidden></p>
@@ -278,7 +305,7 @@ button{cursor:pointer;background:none;border:0}
 <video id="cam" playsinline muted autoplay style="position:fixed;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1"></video>
 <video id="bg" playsinline muted preload="none" style="position:fixed;left:2px;top:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1"></video>
 
-<script src="song-mandalupa.js"></script>
+<script src="songs.js?v=1"></script>
 <script>
 "use strict";
 /* =========================================================
@@ -320,22 +347,31 @@ function show(id){
 }
 document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => show(b.dataset.go)));
 
-/* ---------------- ресурсы */
-const AUDIO_SRC = {minus: "assets/mandalupa-minus.mp3?v=2", guide: "assets/mandalupa-guide.mp3"};   // минус из Suno (v2), сдвинут под тайминг слов
-const audioBytes = {};
-for (const [k, url] of Object.entries(AUDIO_SRC)) {
-  audioBytes[k] = fetch(url).then(r => { if (!r.ok) throw new Error(url); return r.arrayBuffer(); });
+/* ---------------- песни (SONGS — из songs.js): минус, подпевка, тайминг слов и фон — клип или фото группы */
+let SONG = null;
+let SLIDES = [];          // кадры с медленным наездом: фон без клипа или запасной, пока клип грузится
+const AUDIO = new Map();  // id песни -> {minus, guide}: скачанные, ещё не раскодированные mp3
+function songAudio(song){
+  let a = AUDIO.get(song.id);
+  if (a) return a;
+  a = {};
+  for (const k of ["minus", "guide"]) {
+    a[k] = fetch(song[k]).then(r => { if (!r.ok) throw new Error(song[k]); return r.arrayBuffer(); });
+    a[k].catch(() => {});
+  }
+  AUDIO.set(song.id, a);
+  for (const id of [...AUDIO.keys()]) if (AUDIO.size > 3 && id !== song.id) AUDIO.delete(id);   // больше трёх песен в памяти не держим
+  return a;
 }
-// запасной фон, пока клип не загрузился: кадры из того же клипа
-const SLIDES = [
-  {src: "assets/clipstill-0.jpg", t0: -9,   t1: 18,   fx: [0.50, 0.40, 1.00, 1.06]},
-  {src: "assets/clipstill-1.jpg", t0: 18,   t1: 34.3, fx: [0.50, 0.42, 1.06, 1.00]},
-  {src: "assets/clipstill-2.jpg", t0: 34.3, t1: 51.6, fx: [0.50, 0.45, 1.00, 1.06]},
-  {src: "assets/clipstill-3.jpg", t0: 51.6, t1: 64.5, fx: [0.50, 0.40, 1.06, 1.00]},
-  {src: "assets/clipstill-4.jpg", t0: 64.5, t1: 87.2, fx: [0.50, 0.38, 1.00, 1.06]},
-  {src: "assets/clipstill-5.jpg", t0: 87.2, t1: 200,  fx: [0.50, 0.42, 1.06, 1.00]},
-];
-SLIDES.forEach(s => { s.img = new Image(); s.img.decoding = "async"; s.img.src = s.src; s.ready = s.img.decode().then(() => true, () => false); });
+function makeSlides(song){
+  return song.slides.map(s => {
+    const o = Object.assign({}, s);
+    o.img = new Image(); o.img.decoding = "async"; o.img.src = s.src;
+    o.ready = o.img.decode().then(() => true, () => false);
+    return o;
+  });
+}
+function fmtDur(d){ const n = Math.round(d); return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`; }
 
 const fontsReady = Promise.all([
   document.fonts.load('60px Prata', "Мандалупа Жорун"),
@@ -465,7 +501,7 @@ function drawBackground(t){
     if (maskActive()) drawMask(f);
     return;
   }
-  if (BG.active() && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0) {
+  if (BG.active() && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0 && !(SONG.clip.skip && t < SONG.clip.at + SONG.clip.skip)) {
     coverDraw(bgVideo, bgVideo.videoWidth, bgVideo.videoHeight, false);
     return;
   }
@@ -487,14 +523,13 @@ function drawBackground(t){
   }
 }
 
-/* ---------------- клип на фоне: идёт строго по времени песни */
+/* ---------------- клип на фоне: идёт строго по времени песни (кадр 0 клипа — на секунде SONG.clip.at) */
 const bgVideo = $("#bg");
 const BG = {
-  src: "assets/mandalupa-clip.mp4",
   state: "idle",               // idle | loading | ready | error
   playing: false,
   listeners: [],
-  active(){ return this.state !== "error" && (S.mode === "rehearse" || (S.mode === "record" && !S.cam)); },
+  active(){ return !!SONG.clip && this.state !== "error" && (S.mode === "rehearse" || (S.mode === "record" && !S.cam)); },
   emit(){ this.listeners.forEach(f => { try { f(); } catch (e) {} }); },
   progress(){
     const v = bgVideo;
@@ -502,17 +537,20 @@ const BG = {
     return Math.min(1, v.buffered.end(v.buffered.length - 1) / v.duration);
   },
   isReady(){ return this.state === "ready" || bgVideo.readyState >= 4 || (bgVideo.readyState >= 3 && this.progress() > 0.25); },
+  done(){ if (this.state === "loading") { this.state = "ready"; this.emit(); } },
   load(){
-    if (this.state !== "idle") return;
+    if (!SONG.clip || this.state !== "idle") return;
     this.state = "loading";
     const v = bgVideo;
-    v.preload = "auto"; v.src = this.src;
-    const done = () => { if (this.state === "loading") { this.state = "ready"; this.emit(); } };
-    v.addEventListener("canplaythrough", done, {once: true});
-    v.addEventListener("error", () => { this.state = "error"; this.emit(); }, {once: true});
-    v.addEventListener("progress", () => { if (this.isReady()) done(); else this.emit(); });
-    v.addEventListener("loadeddata", () => this.emit());
+    v.preload = "auto"; v.src = SONG.clip.src;
     v.load();
+  },
+  // песню сменили: старый клип выгружаем
+  reset(){
+    this.stop();
+    this.state = "idle";
+    try { bgVideo.removeAttribute("src"); bgVideo.load(); } catch (e) {}
+    this.emit();
   },
   // вызывается прямо в нажатии: iOS начинает грузить видео только после play()
   unlock(){
@@ -523,14 +561,15 @@ const BG = {
       if (p && p.then) p.then(() => { if (!this.playing) bgVideo.pause(); }).catch(() => {});
     } catch (e) {}
   },
-  sync(t){
+  sync(st){
     if (!this.active()) return;
     const v = bgVideo;
     if (v.readyState < 1) return;
-    if (t < 0 || t > v.duration - 0.05) {
+    const t = st - (SONG.clip.at || 0), skip = SONG.clip.skip || 0;   // skip: начало клипа с его собственной надписью не показываем
+    if (t < skip || t > v.duration - 0.05) {
       this.playing = false;
       if (!v.paused) v.pause();
-      if (t < 0 && v.currentTime > 0.05 && !v.seeking) v.currentTime = 0;
+      if (t < skip && Math.abs(v.currentTime - skip) > 0.05 && !v.seeking) v.currentTime = skip;
       return;
     }
     this.playing = true;
@@ -547,6 +586,10 @@ const BG = {
     try { bgVideo.pause(); bgVideo.playbackRate = 1; if (bgVideo.readyState >= 1) bgVideo.currentTime = 0; } catch (e) {}
   },
 };
+bgVideo.addEventListener("canplaythrough", () => BG.done());
+bgVideo.addEventListener("error", () => { if (BG.state === "loading" && bgVideo.getAttribute("src")) { BG.state = "error"; BG.emit(); } });
+bgVideo.addEventListener("progress", () => { if (BG.state !== "loading") return; if (BG.isReady()) BG.done(); else BG.emit(); });
+bgVideo.addEventListener("loadeddata", () => BG.emit());
 
 function drawGrade(){
   g.drawImage(overlayLayer, 0, 0);
@@ -565,7 +608,7 @@ function headerSprite(){
   frog(W / 2, 64, 0.9, "#d9b45e", 1, x);
   x.textAlign = "center"; x.textBaseline = "alphabetic";
   x.fillStyle = "#e3c06a"; x.font = lyricFont(44); x.fillText("Жорун", W / 2, 128);
-  x.fillStyle = "rgba(242,232,213,.92)"; x.font = lyricFont(25); x.fillText("Мандалупа", W / 2, 166);
+  x.fillStyle = "rgba(242,232,213,.92)"; x.font = lyricFont(25); x.fillText(SONG.title, W / 2, 166);
   return (HEADER = c);
 }
 function drawHeader(t){
@@ -578,7 +621,7 @@ function drawHeader(t){
   frog(W / 2, 64, 0.9, "#d9b45e");
   g.textAlign = "center"; g.textBaseline = "alphabetic";
   g.fillStyle = "#e3c06a"; g.font = lyricFont(44); g.fillText("Жорун", W / 2, 128);
-  g.fillStyle = "rgba(242,232,213,.92)"; g.font = lyricFont(25); g.fillText("Мандалупа", W / 2, 166);
+  g.fillStyle = "rgba(242,232,213,.92)"; g.font = lyricFont(25); g.fillText(SONG.title, W / 2, 166);
   g.restore();
 }
 
@@ -745,7 +788,7 @@ function drawProgress(t){
 function render(t, tau){
   drawBackground(t);
   drawGrade();
-  if (!BG.active()) drawHeader(t);   // в клипе своя вывеска «ЖОРУН» на сцене — шапку не дублируем
+  if (!BG.active() || !SONG.clip.sign) drawHeader(t);   // в клипе «Мандалупы» своя вывеска «ЖОРУН» на сцене — там шапку не дублируем
   drawLyrics(t, tau);
   if (t > -1.5 && t < SONG.firstBeat) drawCountdown(t);
   if (t >= 0) drawProgress(t);
@@ -812,13 +855,19 @@ const AE = {
     }
     if (this.ctx.state !== "running") { try { await this.ctx.resume(); } catch (e) {} }
   },
+  bufFor: "",
   async decode(){
-    for (const k of Object.keys(AUDIO_SRC)) {
+    const song = SONG, src = songAudio(song);
+    if (this.bufFor !== song.id) { this.buf = {}; this.bufFor = song.id; }   // раскодированная песня занимает десятки мегабайт — держим одну
+    for (const k of ["minus", "guide"]) {
       if (this.buf[k]) continue;
-      const ab = await audioBytes[k];
-      this.buf[k] = await new Promise((res, rej) => this.ctx.decodeAudioData(ab.slice(0), res, rej));
+      const ab = await src[k];
+      const b = await new Promise((res, rej) => this.ctx.decodeAudioData(ab.slice(0), res, rej));
+      if (this.bufFor !== song.id) return this.decode();   // пока раскодировали, песню сменили
+      this.buf[k] = b;
     }
   },
+  drop(){ this.buf = {}; this.bufFor = ""; },
   impulse(){
     const c = this.ctx, sr = c.sampleRate, n = Math.floor(sr * 1.9);
     const b = c.createBuffer(2, n, sr);
@@ -900,6 +949,51 @@ function syncSetup(){
   S.guide = gd.checked;
   $("#setup-go").textContent = S.cam ? "Включить камеру и микрофон" : "Включить микрофон";
 }
+
+/* ---------------- выбор песни */
+function songMeta(s){ return (s.clip ? "Песня из клипа, " : "Фото группы, ") + fmtDur(s.duration); }
+function selectSong(id){
+  const s = SONGS.find(x => x.id === id) || SONGS[0];
+  if (SONG === s) return;
+  SONG = s;
+  try { localStorage.setItem("song", s.id); } catch (e) {}
+  SLIDES = makeSlides(s);
+  HEADER = null; LINE_CACHE.clear();
+  prepareLines();
+  if (BG.state !== "idle") BG.reset();
+  AE.drop();
+  songAudio(s);
+  $("#song-cover").src = s.cover;
+  $("#song-title").textContent = `«${s.title}»`;
+  $("#song-meta").textContent = songMeta(s);
+  $("#bg-card").style.backgroundImage = `url(${s.card})`;
+  $("#bg-card-title").textContent = s.clip ? "Клип" : "Фото группы";
+  $("#bg-card-text").textContent = s.clip ? `Поёшь поверх клипа «${s.title}»` : "Поёшь на фоне фотографий группы";
+  document.querySelectorAll(".song-row").forEach(r => r.setAttribute("aria-checked", String(r.dataset.song === s.id)));
+}
+function buildSongList(){
+  const list = $("#song-list");
+  for (const s of SONGS) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "song-row"; b.dataset.song = s.id; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", "false");
+    const img = document.createElement("img"); img.src = s.cover; img.alt = ""; img.width = img.height = 52; img.loading = "lazy"; img.decoding = "async";
+    const t = document.createElement("span"); t.className = "t";
+    const name = document.createElement("b"); name.textContent = s.title;
+    const meta = document.createElement("small");
+    if (s.clip) { const em = document.createElement("em"); em.textContent = "Клип"; meta.appendChild(em); }
+    meta.appendChild(document.createTextNode(fmtDur(s.duration)));
+    t.append(name, meta);
+    const tick = document.createElement("i"); tick.className = "tick"; tick.setAttribute("aria-hidden", "true");
+    b.append(img, t, tick);
+    b.addEventListener("click", () => { selectSong(s.id); show("intro"); });
+    list.appendChild(b);
+  }
+}
+$("#song-pick").addEventListener("click", () => {
+  show("songs");
+  const cur = document.querySelector('.song-row[aria-checked="true"]');
+  if (cur) setTimeout(() => { cur.scrollIntoView({block: "nearest"}); cur.focus({preventScroll: true}); }, 80);
+});
 document.querySelectorAll('#setup input').forEach(i => i.addEventListener("change", () => {
   syncSetup();
   if (!S.cam) BG.unlock();   // выбор «Клип» — сразу начинаем грузить видео
@@ -1049,7 +1143,7 @@ $("#setup-go").addEventListener("click", async () => {
     err.innerHTML = "";
     const p = document.createElement("p"); p.textContent = mediaError(e); err.appendChild(p);
     if (S.cam && e && e.name !== "NotFoundError") {
-      const b = document.createElement("button"); b.type = "button"; b.textContent = "Петь без камеры, поверх клипа";
+      const b = document.createElement("button"); b.type = "button"; b.textContent = SONG.clip ? "Петь без камеры, поверх клипа" : "Петь без камеры, на фоне фото группы";
       b.addEventListener("click", () => { document.querySelector('input[name="cam"][value="off"]').checked = true; syncSetup(); $("#setup-go").click(); });
       err.appendChild(b);
     }
@@ -1276,12 +1370,13 @@ async function finishTake(){
   S.blobUrl = URL.createObjectURL(S.blob);
   const ext = type.includes("mp4") ? "mp4" : "webm";
   const v = $("#result-video"); v.src = S.blobUrl;
-  const a = $("#download"); a.href = S.blobUrl; a.download = `zhorun-mandalupa.${ext}`;
-  const file = new File([S.blob], `zhorun-mandalupa.${ext}`, {type});
+  const a = $("#download"); a.href = S.blobUrl; a.download = `zhorun-${SONG.id}.${ext}`;
+  const file = new File([S.blob], `zhorun-${SONG.id}.${ext}`, {type});
   const canShare = !!(navigator.canShare && navigator.canShare({files: [file]}));
   $("#save").hidden = !canShare;
+  const shareTitle = `${SONG.title} — караоке «Жорун»`;
   $("#save").onclick = async () => {
-    try { await navigator.share({files: [file], title: "Мандалупа — караоке «Жорун»", text: "#спойнастрапонском"}); }
+    try { await navigator.share({files: [file], title: shareTitle, text: "#спойнастрапонском"}); }
     catch (e) { if (e && e.name !== "AbortError") a.click(); }
   };
   a.classList.toggle("primary", !canShare); a.classList.toggle("outline", canShare);
@@ -1323,18 +1418,19 @@ document.addEventListener("visibilitychange", () => {
 if (/VKAndroidApp|VKClient|com\.vkontakte|Instagram|FBAN|FBAV|Telegram/i.test(navigator.userAgent)) $("#inapp-notice").hidden = false;
 
 /* ---------------- старт */
-fontsReady.then(() => { prepareLines(); render(-9, performance.now() / 1000); });
-prepareLines();
+buildSongList();
+selectSong(PARAMS.get("song") || (() => { try { return localStorage.getItem("song"); } catch (e) { return null; } })() || SONGS[0].id);
+fontsReady.then(() => { HEADER = null; LINE_CACHE.clear(); prepareLines(); render(-9, performance.now() / 1000); });
 
 // режим проверки кадра: ?still=40&cam=0
 if (PARAMS.has("still")) {
   const t = parseFloat(PARAMS.get("still"));
   const clipFrame = () => new Promise(res => {
-    if (!PARAMS.has("clip")) return res();
+    if (!PARAMS.has("clip") || !SONG.clip) return res();
     S.mode = "rehearse"; BG.load();
     bgVideo.addEventListener("loadeddata", () => {
       bgVideo.addEventListener("seeked", () => res(), {once: true});
-      bgVideo.currentTime = Math.max(0, t);
+      bgVideo.currentTime = Math.max(0, t - (SONG.clip.at || 0));
     }, {once: true});
   });
   Promise.all([fontsReady, ...SLIDES.map(s => s.ready)]).then(clipFrame).then(() => {
