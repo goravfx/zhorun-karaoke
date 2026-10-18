@@ -63,6 +63,21 @@ button{cursor:pointer;background:none;border:0}
 .song img{width:56px;height:56px;border-radius:8px;flex:none;box-shadow:0 0 0 1px rgba(242,232,213,.18)}
 .song b{display:block;font-weight:600;font-size:16px;line-height:1.25}
 .song span{display:block;font-size:13.5px;color:var(--dust);line-height:1.35}
+.pick{margin:0 -20px 12px}
+.pick-title{font-weight:600;font-size:15px;margin:0 20px 8px}
+.tiles{display:flex;gap:10px;overflow-x:auto;padding:3px 20px 4px;scroll-snap-type:x proximity;scroll-padding:0 20px;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.tiles::-webkit-scrollbar{display:none}
+.tile{position:relative;flex:none;width:92px;scroll-snap-align:start;text-align:left;color:var(--ivory)}
+.tile img{display:block;width:92px;height:92px;border-radius:12px;object-fit:cover;background:#2a1d16;box-shadow:0 0 0 1px rgba(242,232,213,.18)}
+.tile span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px;font-weight:500;line-height:1.25;margin-top:6px;color:rgba(242,232,213,.82)}
+.tile[aria-checked="true"] img{box-shadow:0 0 0 2px var(--gold-hi)}
+.tile[aria-checked="true"] span{color:var(--ivory)}
+.tile[aria-checked="true"]::after{content:"";position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:var(--gold) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M6 11.5l3.2 3.2L16 8' fill='none' stroke='%230d0907' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.all-songs{display:flex;align-items:center;gap:4px;margin:4px 20px 0;min-height:40px;color:var(--gold-hi);font-weight:500;font-size:14.5px}
+.all-songs span{color:var(--dust);margin-left:4px}
+.all-songs svg{width:16px;height:16px;transform:rotate(180deg)}
+@media (max-height:700px){.intro .fine{display:none}.intro .lead{margin-bottom:10px}}
+@media (max-height:620px){.intro .lead{display:none}}
 .album-pill{display:inline-flex;align-items:center;gap:10px;max-width:100%;padding:5px 16px 5px 5px;margin:0 0 14px;border-radius:30px;background:rgba(13,9,7,.62);border:1px solid rgba(217,180,94,.6);color:var(--ivory);text-align:left;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .album-pill img{width:42px;height:42px;border-radius:50%;flex:none;object-fit:cover}
 .album-pill small{display:block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-hi)}
@@ -222,7 +237,11 @@ button{cursor:pointer;background:none;border:0}
       <button class="album-pill" id="album-pill" type="button" hidden><img id="album-cover" src="" alt="" width="42" height="42"><span><small id="album-label">Новый альбом</small><b id="album-title"></b></span></button>
       <h1 id="intro-title">Спой на&nbsp;страпонском</h1>
       <p class="lead">Пой поверх клипа или снимай себя, а&nbsp;в&nbsp;конце забирай готовый ролик для VK&nbsp;Клипов.</p>
-      <button class="song pick" id="song-pick" type="button"><img id="song-cover" src="assets/cover-mandalupa-240.jpg" alt="" width="56" height="56"><div><b id="song-title">«Мандалупа»</b><span id="song-meta">Песня из&nbsp;клипа, 1:49</span></div><span class="more">Сменить<svg aria-hidden="true"><use href="#chev"/></svg></span></button>
+      <div class="pick">
+        <p class="pick-title" id="pick-title">Выбери песню</p>
+        <div class="tiles" id="song-tiles" role="radiogroup" aria-labelledby="pick-title"></div>
+        <button class="all-songs" id="song-all" type="button">Перейти к списку композиций<span id="song-count"></span><svg aria-hidden="true"><use href="#chev"/></svg></button>
+      </div>
       <button class="btn primary" id="go-record" type="button"><span class="dot" aria-hidden="true"></span>Записать ролик</button>
       <button class="btn ghost" id="go-rehearse" type="button">Сначала порепетировать</button>
       <p class="notice" id="inapp-notice" hidden>Ты открыл страницу внутри приложения. Если камера не включится, открой её в&nbsp;Safari или Chrome: нажми ⋯ вверху и&nbsp;выбери «Открыть в&nbsp;браузере».</p>
@@ -983,13 +1002,35 @@ function selectSong(id){
   if (BG.state !== "idle") BG.reset();
   AE.drop();
   songAudio(s);
-  $("#song-cover").src = s.cover;
-  $("#song-title").textContent = `«${s.title}»`;
-  $("#song-meta").textContent = songMeta(s);
   $("#bg-card").style.backgroundImage = `url(${s.card})`;
   $("#bg-card-title").textContent = s.clip ? "Клип" : "Фото группы";
   $("#bg-card-text").textContent = s.clip ? (s.clip.until ? `Поёшь поверх промо альбома «${ALBUM_ON ? ALBUM_ON.title : s.title}»` : `Поёшь поверх клипа «${s.title}»`) : "Поёшь на фоне фотографий группы";
-  document.querySelectorAll(".song-row").forEach(r => r.setAttribute("aria-checked", String(r.dataset.song === s.id)));
+  document.querySelectorAll(".song-row, .tile").forEach(r => r.setAttribute("aria-checked", String(r.dataset.song === s.id)));
+}
+function songOrder(){   // песни нового альбома — первыми
+  if (!ALBUM_ON) return SONGS;
+  const al = ALBUM_ON.songs.map(id => SONGS.find(s => s.id === id)).filter(Boolean);
+  return [...al, ...SONGS.filter(s => !inAlbum(s.id))];
+}
+function buildTiles(){
+  const box = $("#song-tiles");
+  for (const s of songOrder()) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "tile"; b.dataset.song = s.id; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", "false");
+    const img = document.createElement("img"); img.src = s.cover; img.alt = ""; img.width = img.height = 92; img.loading = "lazy"; img.decoding = "async";
+    const t = document.createElement("span"); t.textContent = s.title;
+    b.append(img, t);
+    b.addEventListener("click", () => selectSong(s.id));
+    box.appendChild(b);
+  }
+  $("#song-count").textContent = `(${SONGS.length})`;
+}
+function revealTile(smooth){
+  const box = $("#song-tiles"), cur = box.querySelector('.tile[aria-checked="true"]');
+  if (!cur) return;
+  const bl = box.getBoundingClientRect(), cl = cur.getBoundingClientRect(), pad = 20, behavior = smooth ? "smooth" : "auto";
+  // не видна целиком — ставим её первой в ряду (это точка привязки прокрутки, туда ряд и встанет)
+  if (cl.left < bl.left + pad - 1 || cl.right > bl.right - pad + 1) box.scrollBy({left: cl.left - bl.left - pad, behavior});
 }
 function buildSongList(){
   const list = $("#song-list");
@@ -1001,11 +1042,7 @@ function buildSongList(){
     if (title) { const b = document.createElement("b"); b.textContent = title; t.appendChild(b); }
     h.appendChild(t); list.appendChild(h);
   };
-  let order = SONGS;
-  if (ALBUM_ON) {
-    const al = ALBUM_ON.songs.map(id => SONGS.find(s => s.id === id)).filter(Boolean);
-    order = [...al, ...SONGS.filter(s => !inAlbum(s.id))];
-  }
+  const order = songOrder();
   for (const s of order) {
     if (ALBUM_ON && s === order[0]) sec("Новый альбом", ALBUM_ON.title ? `«${ALBUM_ON.title}»` : "", ALBUM_ON.cover);
     if (ALBUM_ON && !inAlbum(s.id) && (order.indexOf(s) === 0 || inAlbum(order[order.indexOf(s) - 1].id))) sec("Другие песни", "", null, true);
@@ -1020,7 +1057,7 @@ function buildSongList(){
     t.append(name, meta);
     const tick = document.createElement("i"); tick.className = "tick"; tick.setAttribute("aria-hidden", "true");
     b.append(img, t, tick);
-    b.addEventListener("click", () => { selectSong(s.id); show("intro"); });
+    b.addEventListener("click", () => { selectSong(s.id); show("intro"); setTimeout(() => revealTile(false), 30); });
     list.appendChild(b);
   }
 }
@@ -1031,7 +1068,7 @@ if (ALBUM_ON) {
   if (ALBUM_ON.date) $("#album-label").textContent = `Новый альбом · ${ALBUM_ON.date}`;
   $("#album-pill").addEventListener("click", () => { show("songs"); $("#songs").scrollTop = 0; });
 }
-$("#song-pick").addEventListener("click", () => {
+$("#song-all").addEventListener("click", () => {
   show("songs");
   const cur = document.querySelector('.song-row[aria-checked="true"]');
   if (cur) setTimeout(() => { cur.scrollIntoView({block: "nearest"}); cur.focus({preventScroll: true}); }, 80);
@@ -1461,7 +1498,9 @@ if (/VKAndroidApp|VKClient|com\.vkontakte|Instagram|FBAN|FBAV|Telegram/i.test(na
 
 /* ---------------- старт */
 buildSongList();
+buildTiles();
 selectSong(PARAMS.get("song") || (() => { try { return localStorage.getItem("song"); } catch (e) { return null; } })() || (ALBUM_ON ? ALBUM_ON.songs[0] : SONGS[0].id));
+requestAnimationFrame(() => revealTile(false));   // выбранная песня видна в ряду
 fontsReady.then(() => { HEADER = null; LINE_CACHE.clear(); prepareLines(); render(-9, performance.now() / 1000); });
 
 // режим проверки кадра: ?still=40&cam=0
