@@ -7,7 +7,7 @@
 import { CANON_V, CANON_F, CANON_UV } from "./face-canon.js";
 
 const BASE = new URL("./", import.meta.url).href;
-const VQ = "?v=10";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
+const VQ = "?v=11";   // версия ресурсов маски: после обновления браузер не смешает старые файлы с новыми
 const DEG = Math.PI / 180;
 
 /* ---------------- математика */
@@ -58,6 +58,8 @@ const LOOKS = {
   accordion: { ears: true, files: ["paint.webp"] },
   guitar:    { ears: false, fill: true, spec: 0.11, shell: { cut: 0.35, crown: 0.6 }, files: ["proj.webp", "proj.bin", "hair.webp", "shell.bin", "det.webp", "teeth.webp", "teeth.bin"] },
   trumpet:   { ears: false, fill: true, spec: 0.1, shell: { cut: 0.35, crown: 0.6 }, files: ["proj.webp", "proj.bin", "hair.webp", "shell.bin", "det.webp"] },
+  // Мандалупа: волосы, прыщи, голубые тени (по её фото), большие губы её помадой и золотые зубы — по кадру камеры
+  mandalupa: { ears: false, fill: true, spec: 0.08, shell: { cut: 0.35, crown: 0.6 }, mouth: { lens: 0.34, lip: [0.84, 0.25, 0.53], gold: true }, files: ["proj.webp", "proj.bin", "hair.webp", "shell.bin", "det.webp", "paint.webp"] },
 };
 export const LOOK_NAMES = Object.keys(LOOKS);
 // .bin лежат и сжатыми (.gz, втрое меньше): браузер распаковывает сам; старый браузер без распаковщика берёт обычные
@@ -290,10 +292,41 @@ precision highp float;
 uniform sampler2D u_cam; uniform vec4 u_cm;      // (dx, dy, 1/(k·w), 1/(k·h)): пиксель холста → uv кадра
 uniform sampler2D u_det; uniform sampler2D u_paint;
 uniform vec2 u_canvas; uniform vec3 u_skin; uniform float u_light; uniform vec2 u_camInv; uniform float u_fill;
+// рот: лупа на губах (большие губы), помада, золотые зубы. u_lipF — центр рта и ось вдоль рта (px кадра);
+// u_lipP — полуоси лупы (px), сила, золото; u_mo — 20 точек внешнего контура губ и 20 внутреннего (px кадра)
+uniform vec4 u_lipF; uniform vec4 u_lipP; uniform vec3 u_lipCol; uniform vec2 u_mo[40];
 in vec2 v_uv; in float v_a; in vec3 v_n; in vec2 v_src; in float v_band; out vec4 o;
+float polyDist(int off, vec2 p, out bool inside){
+  inside = false; float dm = 1e9;
+  for (int i = 0; i < 20; i++) {
+    vec2 a = u_mo[off + i], b = u_mo[off + (i + 19) % 20];
+    if ((a.y > p.y) != (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+    vec2 ab = b - a; float t = clamp(dot(p - a, ab) / max(dot(ab, ab), 1e-6), 0.0, 1.0);
+    dm = min(dm, length(p - a - ab * t));
+  }
+  return dm;
+}
 void main(){
   vec2 cp = vec2(gl_FragCoord.x, u_canvas.y - gl_FragCoord.y);
-  vec3 cam = texture(u_cam, (cp - u_cm.xy) * u_cm.zw).rgb;
+  vec2 suv = (cp - u_cm.xy) * u_cm.zw;
+  float lipA = 0.0, onLip = 0.0, inMouth = 0.0, shine = 0.0;
+  if (u_lipP.z > 0.0) {
+    vec2 d = suv / u_camInv - u_lipF.xy;
+    vec2 q = vec2(dot(d, u_lipF.zw), dot(d, vec2(-u_lipF.w, u_lipF.z))) / u_lipP.xy;
+    float r2 = dot(q, q);
+    if (r2 < 1.0) {
+      float g = 1.0 - r2;
+      vec2 sp = u_lipF.xy + d * (1.0 - u_lipP.z * g * g);      // кадр берём ближе к центру рта — губы крупнее
+      suv = sp * u_camInv;
+      lipA = smoothstep(1.0, 0.8, r2);
+      bool iO, iI;
+      float dO = polyDist(0, sp, iO), dI = polyDist(20, sp, iI);
+      onLip = (iO ? smoothstep(0.0, 1.6, dO) : 0.0) * (iI ? 1.0 - smoothstep(0.0, 1.2, dI) : 1.0);
+      inMouth = iI ? 1.0 : 1.0 - smoothstep(0.0, 0.3 * u_lipP.y, dI);   // зубы у уголков рта — тоже (точки контура чуть внутри)
+      shine = exp(-(q.x * q.x / 0.1 + (q.y - 0.42) * (q.y - 0.42) / 0.012)) + 0.5 * exp(-((abs(q.x) - 0.24) * (abs(q.x) - 0.24) / 0.012 + (q.y + 0.4) * (q.y + 0.4) / 0.006));
+    }
+  }
+  vec3 cam = texture(u_cam, suv).rgb;
   float fb = v_band * u_fill;
   if (fb > 0.001) {                              // полоса лба — кожа лба человека (зеркально снизу); если там прядь — просто цвет кожи
     vec3 fs = texture(u_cam, v_src * u_camInv).rgb;
@@ -304,12 +337,28 @@ void main(){
   vec4 d = texture(u_det, v_uv);                 // rgb — множитель/2 (0.5 — без изменений), a — где слой есть
   vec4 p = texture(u_paint, v_uv);               // краска (умножена на альфу)
   float rim = smoothstep(-0.25, 0.1, -normalize(v_n).z) * v_a;
-  float A = max(d.a, fb) * rim, P = p.a * rim;
-  if (A + P < 0.003) discard;
-  vec3 base = cam * (d.rgb * 2.0);
   const vec3 Y = vec3(0.299, 0.587, 0.114);
-  float sh = pow(clamp(dot(cam, Y) / max(dot(u_skin, Y), 0.04), 0.12, 1.6), 0.85);
-  vec3 paint = p.rgb * (sh * u_light) + vec3(0.14) * max(0.0, sh - 1.12) * p.a;   // тени лица на гриме + жирный блеск
+  float lr = dot(cam, Y) / max(dot(u_skin, Y), 0.04);
+  vec3 base = cam * (d.rgb * 2.0);
+  if (inMouth > 0.0 && u_lipP.w > 0.0) {          // золотые зубы: светлое и бесцветное во рту — это зубы
+    float mx = max(max(cam.r, cam.g), cam.b), sat = (mx - min(min(cam.r, cam.g), cam.b)) / max(mx, 0.05);
+    float tooth = smoothstep(0.38, 0.68, lr) * smoothstep(0.56, 0.3, sat) * inMouth;
+    // золото: тёмное в тени, насыщенное в середине, почти белые блики — металл, а не жёлтая пластмасса
+    float gl = pow(clamp(lr / 1.2, 0.0, 1.6), 2.6);   // контраст металла: свои тени и блики зубов сильнее
+    vec3 gold = mix(vec3(0.2, 0.11, 0.03), vec3(0.82, 0.55, 0.16), smoothstep(0.15, 0.85, gl));
+    gold = mix(gold, vec3(1.0, 0.92, 0.66), smoothstep(0.95, 1.45, gl));
+    base = mix(base, gold, tooth);
+  }
+  float gloss = 0.0;
+  if (onLip > 0.0) {                              // помада поверх своих (уже увеличенных) губ: её цвет, свет и блеск — свои
+    float lp = onLip * 0.88;
+    p = vec4(u_lipCol * lp, lp) + p * (1.0 - lp);
+    gloss = (smoothstep(0.95, 1.35, lr) + 0.55 * shine) * onLip;   // блеск помады: блики самих губ + влажный блик посередине нижней
+  }
+  float A = max(max(d.a, fb), lipA) * rim, P = p.a * rim;
+  if (A + P < 0.003) discard;
+  float sh = pow(clamp(lr, 0.12, 1.6), 0.85);
+  vec3 paint = p.rgb * (sh * u_light) + vec3(0.14) * max(0.0, sh - 1.12) * p.a + vec3(0.42, 0.36, 0.4) * gloss * p.a;   // тени лица на гриме + блеск
   vec3 col = paint * rim + base * A * (1.0 - P);
   o = vec4(col, P + A * (1.0 - P));
 }`;
@@ -677,6 +726,10 @@ class Renderer {
       tex(u.u_det, 1, L.detTex); tex(u.u_paint, 2, L.paintTex); tex(u.u_cam, 3, this.camTex);
       gl.uniform4fv(u.u_cm, skin.cm); gl.uniform3fv(u.u_skin, skin.rgb); gl.uniform1f(u.u_light, skin.light);
       gl.uniform2f(u.u_camInv, 1 / this.camW, 1 / this.camH); gl.uniform1f(u.u_fill, L.cfg.fill ? 1 : 0);
+      if (skin.mouth) {
+        const mo = skin.mouth;
+        gl.uniform4fv(u.u_lipF, mo.F); gl.uniform4fv(u.u_lipP, mo.P); gl.uniform3fv(u.u_lipCol, mo.col); gl.uniform2fv(u["u_mo[0]"], mo.pts);
+      } else gl.uniform4f(u.u_lipP, 1, 1, 0, 0);
       draw(this.skinMesh);
       gl.depthMask(true);
     }
@@ -713,6 +766,20 @@ class Renderer {
     gl.bindVertexArray(null);
     gl.disable(gl.SCISSOR_TEST);
   }
+}
+
+/* ---------------- рот: лупа на губах, контуры губ (px кадра) */
+const LIP_OUT = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 409, 270, 269, 267, 0, 37, 39, 40, 185];
+const LIP_IN = [78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308, 415, 310, 311, 312, 13, 82, 81, 80, 191];
+const mouthBuf = new Float32Array(80);
+function mouthParams(L, s, cfg){
+  const P = i => [L[i * 3], L[i * 3 + 1]];
+  const l = P(61), r = P(291), t = P(0), b = P(17);
+  const C = [(l[0] + r[0] + t[0] + b[0]) / 4, (l[1] + r[1] + t[1] + b[1]) / 4];
+  const ax = [r[0] - l[0], r[1] - l[1]], w = Math.hypot(ax[0], ax[1]) / 2 || 1, h = Math.hypot(t[0] - b[0], t[1] - b[1]) / 2;
+  LIP_OUT.forEach((i, k) => { mouthBuf[k * 2] = L[i * 3]; mouthBuf[k * 2 + 1] = L[i * 3 + 1]; });
+  LIP_IN.forEach((i, k) => { mouthBuf[40 + k * 2] = L[i * 3]; mouthBuf[40 + k * 2 + 1] = L[i * 3 + 1]; });
+  return { F: [C[0], C[1], ax[0] / (2 * w), ax[1] / (2 * w)], P: [Math.max(1.35 * w, 2.6 * s), Math.max(1.45 * s, 1.4 * h), cfg.lens, cfg.gold ? 1 : 0], col: cfg.lip, pts: mouthBuf };
 }
 
 /* ---------------- трекер: отдельный поток (worker) или, если не вышло, основной */
@@ -1004,6 +1071,7 @@ export async function createMask({ look = "zhorun", mode = "VIDEO", delegate = n
       if (LK.skin && src && r.uploadCam(src)) {
         const Ys = 0.299 * this.skin[0] + 0.587 * this.skin[1] + 0.114 * this.skin[2];
         skin = { cm: [view.dx, view.dy, 1 / (view.k * r.camW), 1 / (view.k * r.camH)], rgb: this.skin, light: clamp(0.55 + 0.6 * Ys, 0.75, 1.05) };
+        if (LK.cfg.mouth) skin.mouth = mouthParams(lm, pose.s, LK.cfg.mouth);
       }
       r.render(LK, pose, view, this.exposure, box, this._fit(LK), skin);
       g.save();
