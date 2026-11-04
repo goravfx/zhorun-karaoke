@@ -67,6 +67,7 @@ h2{font-size:clamp(30px,8.5vw,42px)}
 .stats b{color:var(--cream);font-variant-numeric:tabular-nums;font-weight:700}
 .best{margin:0;font-size:14px;color:var(--gold)}
 .card-pic img{display:block;width:auto;max-width:100%;height:auto;max-height:min(62vh,560px);margin:0 auto;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#scr-card.tall .card-pic img{max-height:min(70vh,1000px)}   /* сторис крупно — чтобы можно было снять скриншотом */
 a.btn{text-decoration:none;display:inline-block}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .levels{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -128,6 +129,7 @@ a.btn{text-decoration:none;display:inline-block}
   .card-title h1{font-size:clamp(34px,4.4vw,48px)}
   .card-title .lead{text-align:left}
   .card-pic img{max-height:min(50vh,560px)}
+  #scr-card.tall .card-pic img{max-height:56vh}
 }
 @media (min-width:640px) and (max-height:560px){
   .t-col{gap:8px}
@@ -206,7 +208,7 @@ a.btn{text-decoration:none;display:inline-block}
       <button class="btn btn-main" id="btn-next" type="button" hidden>Дальше</button>
       <div class="row">
         <button class="btn btn-main" id="btn-again" type="button">Ещё раз</button>
-        <button class="btn btn-ghost" id="btn-share" type="button" hidden>Картинка для ВК</button>
+        <button class="btn btn-ghost" id="btn-share" type="button" hidden>Поделиться рекордом</button>
         <button class="btn btn-ghost" id="btn-menu2" type="button">Меню</button>
       </div>
     </div>
@@ -214,7 +216,7 @@ a.btn{text-decoration:none;display:inline-block}
 
   <section class="screen" id="scr-card" aria-labelledby="card-title" hidden>
     <div class="card card-pic">
-      <h2 id="card-title" class="sr">Картинка для ВК</h2>
+      <h2 id="card-title" class="sr">Картинка с рекордом</h2>
       <img id="card-img" alt="Картинка с результатом марафона" width="1080" height="1350">
       <p class="best" id="card-note">Нажми на картинку и подержи — сохранится в галерею</p>
       <div class="row" id="card-vk" hidden>
@@ -3972,7 +3974,7 @@ function render() {
   drawHUD();
 }
 
-/* ================= картинка для ВК ================= */
+/* ================= картинка с рекордом ================= */
 // сохранение через Claude (если игра открыта там); за его пределами — «поделиться» телефона или окно с картинкой
 const DLP = (window.claude && typeof window.claude.use === 'function') ? Promise.resolve(window.claude.use('downloads')).catch(() => null) : Promise.resolve(null);
 function cardText(g, text, x, y, font, col, maxW, sp) {
@@ -3993,16 +3995,19 @@ function snapFrame() {
   try { c.getContext('2d').drawImage(cv, sx, sy, sw, sh, 0, 0, sw, sh); } catch (e) { /* кадр не обязателен */ }
   return c;
 }
-// tall — для истории ВК: та же карточка по центру кадра 1080×1920
-function makeShareCard(tall, snap) {
+// tall — формат сторис 1080×1920: та же карточка по центру; cta — внизу подпись, где найти игру (для Инстаграма).
+// Всё важное — в середине кадра: сверху и снизу сторис закрыты полоской, именем и полем ответа
+const IG_HANDLE = '@gora_vfx';
+function makeShareCard(tall, snap, cta) {
   const R = G.mar || { d: Math.round(G.dist), s: SNG.passed, at: SNG.i, win: G.won, best: {} };
-  const CW = 1080, CH = tall ? 1920 : 1350, oy = tall ? 285 : 0, c = document.createElement('canvas'); c.width = CW; c.height = CH;
+  const CW = 1080, CH = tall ? 1920 : 1350, sc = tall && cta ? 0.9 : 1, ox = CW * (1 - sc) / 2, oy = tall ? (cta ? 236 : 285) : 0;
+  const c = document.createElement('canvas'); c.width = CW; c.height = CH;
   const g = c.getContext('2d');
   const bg = g.createLinearGradient(0, 0, 0, CH); bg.addColorStop(0, '#5e1733'); bg.addColorStop(0.55, '#3f0d22'); bg.addColorStop(1, '#22060f');
   g.fillStyle = bg; g.fillRect(0, 0, CW, CH);
-  const glow = g.createRadialGradient(CW / 2, 560 + oy, 60, CW / 2, 560 + oy, 760); glow.addColorStop(0, 'rgba(243,194,79,.16)'); glow.addColorStop(1, 'rgba(243,194,79,0)');
+  const gy = oy + 560 * sc, glow = g.createRadialGradient(CW / 2, gy, 60, CW / 2, gy, 760); glow.addColorStop(0, 'rgba(243,194,79,.16)'); glow.addColorStop(1, 'rgba(243,194,79,0)');
   g.fillStyle = glow; g.fillRect(0, 0, CW, CH);
-  g.translate(0, oy);
+  g.save(); g.translate(ox, oy); g.scale(sc, sc);
   g.textAlign = 'center'; g.textBaseline = 'alphabetic';
   cardText(g, 'ЖОРУН · ОСТАНОВЫСЬ МРАЗНЯ', CW / 2, 104, '800 30px ' + F_UI, 'rgba(255,243,220,.78)', 960, 6);
   cardText(g, R.win ? 'Марафон пройден' : 'Марафон', CW / 2, 196, '400 84px ' + F_DISP, '#ffd86b', 960);
@@ -4029,13 +4034,21 @@ function makeShareCard(tall, snap) {
   cardText(g, 'Песен: ' + n + ' из ' + MARATHON.length, CW / 2, 1150, '800 44px ' + F_UI, '#ffd86b', 960);
   cardText(g, R.win ? 'Догнал Мандалупу в болоте!' : 'Догнали на песне «' + MARATHON[clamp(R.at, 0, MARATHON.length - 1)].t + '»', CW / 2, 1206, '600 34px ' + F_UI, '#fff3dc', 960);
   cardText(g, 'Сможешь дальше?', CW / 2, 1296, '400 60px ' + F_DISP, '#f3c24f', 960);
+  g.restore();
+  if (cta) {
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    cardText(g, 'Играть — по ссылке в профиле', CW / 2, 1560, '600 40px ' + F_UI, 'rgba(255,243,220,.86)', 960);
+    cardText(g, IG_HANDLE, CW / 2, 1636, '800 64px ' + F_UI, '#ffd86b', 960, 1);
+  }
   return c;
 }
-function dataBlob(url) {
+function dataBlob(url, type) {
   const b = atob(url.split(',')[1]), u = new Uint8Array(b.length);
   for (let k = 0; k < b.length; k++) u[k] = b.charCodeAt(k);
-  return new Blob([u], { type: 'image/png' });
+  return new Blob([u], { type: type || 'image/png' });
 }
+// встроенный браузер Инстаграма (и Фейсбука): «поделиться» и скачивание там обычно не работают
+const IN_APP = /Instagram|FBAN|FBAV|FB_IAB/i.test(navigator.userAgent || '');
 const cardScr = $('scr-card');
 let cardURL = null, sharing = false;
 function closeCard() {
@@ -4047,25 +4060,34 @@ async function shareCard() {
   if (sharing) return;
   sharing = true;
   try {
-    const snap = snapFrame();
-    const blob = dataBlob(makeShareCard(false, snap).toDataURL('image/png'));
-    const name = 'zhorun-marafon-' + Math.round((G.mar && G.mar.d) || G.dist) + 'm.png';
-    if (VK.on) { await vkShareOpen(blob, name, snap); return; }
+    const snap = snapFrame(), d = Math.round((G.mar && G.mar.d) || G.dist);
+    if (VK.on) { await vkShareOpen(dataBlob(makeShareCard(false, snap).toDataURL('image/png'), 'image/png'), 'zhorun-marafon-' + d + 'm.png', snap); return; }
+    // вне ВК (Инстаграм, браузер, Claude): картинка под сторис, внизу — где найти игру
+    const blob = dataBlob(makeShareCard(true, snap, true).toDataURL('image/jpeg', 0.92), 'image/jpeg');
+    const name = 'zhorun-marafon-' + d + 'm.jpg';
     const dl = await DLP;
     if (dl) {
       try { await dl.save({ filename: name, data: blob }); return; }
       catch (e) { if (e && (e.code === 'declined' || e.code === 'rate_limited')) return; }
     }
+    // телефон в обычном браузере: меню «Поделиться» — оттуда сразу в сторис Инстаграма
     let file = null;
-    try { file = new File([blob], name, { type: 'image/png' }); } catch (e) { file = null; }
+    try { file = new File([blob], name, { type: 'image/jpeg' }); } catch (e) { file = null; }
     if (file && navigator.canShare && navigator.share) {
       try {
-        if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Марафон Жоруна' }); return; }
+        if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; }
       } catch (e) { if (e && e.name === 'AbortError') return; }
     }
+    // не вышло (встроенный браузер Инстаграма, компьютер) — показываем картинку крупно: сохранить или снять скриншот
     if (cardURL) URL.revokeObjectURL(cardURL);
     cardURL = URL.createObjectURL(blob);
-    $('card-img').src = cardURL; $('card-dl').href = cardURL; $('card-dl').setAttribute('download', name);
+    const img = $('card-img'); img.width = 1080; img.height = 1920; img.src = cardURL;
+    $('card-dl').href = cardURL; $('card-dl').setAttribute('download', name);
+    $('card-dl').className = 'btn ' + (TOUCH ? 'btn-ghost' : 'btn-main'); $('card-dl').hidden = TOUCH && IN_APP;
+    $('card-note').textContent = TOUCH
+      ? 'Нажми на картинку и подержи, чтобы сохранить. Не сохраняется — сделай скриншот экрана и выложи в сторис'
+      : 'Скачай картинку и выложи в сторис или пост';
+    cardScr.classList.add('tall');
     scr.result.hidden = true; cardScr.hidden = false;
     try { $('card-close').focus({ preventScroll: true }); } catch (e) { /* ок */ }
   } catch (e) { console.warn('картинка не получилась:', e && e.message); }
@@ -4076,6 +4098,7 @@ async function vkShareOpen(blob, name, snap) {
   VK.snap = snap;
   if (cardURL) URL.revokeObjectURL(cardURL);
   cardURL = URL.createObjectURL(blob);
+  cardScr.classList.remove('tall'); $('card-img').width = 1080; $('card-img').height = 1350;
   $('card-img').src = cardURL; $('card-dl').href = cardURL; $('card-dl').setAttribute('download', name);
   const [st, wa, inv] = await Promise.all(['VKWebAppShowStoryBox', 'VKWebAppShowWallPostBox', 'VKWebAppShowInviteBox'].map(vkCan));
   $('card-story').hidden = !st; $('card-wall').hidden = !wa; $('card-invite').hidden = !inv || VK.noInvite;
