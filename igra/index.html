@@ -81,6 +81,7 @@ a.btn{text-decoration:none;display:inline-block}
 .lvl[aria-pressed="true"]{background:linear-gradient(180deg,rgba(243,194,79,.3),rgba(208,145,31,.16));border-color:var(--gold);box-shadow:inset 0 0 0 1px rgba(243,194,79,.6)}
 .lvl[aria-pressed="true"] .lvl-n,.lvl[aria-pressed="true"] .lvl-b{color:var(--cream)}
 .lvl:focus-visible{outline:3px solid var(--cream);outline-offset:2px}
+.lvl:not(.lvl-mar){justify-content:flex-start}   /* превью тренировок на одной высоте, даже если название в две строки */
 .lvl-mar{grid-column:1/-1;padding:13px 10px 12px;background:linear-gradient(180deg,rgba(243,194,79,.14),rgba(42,8,24,.4))}
 .lvl-mar .lvl-t{font-size:25px}
 [hidden]{display:none!important}
@@ -117,7 +118,6 @@ a.btn{text-decoration:none;display:inline-block}
   .stats{gap:3px;font-size:14px}
   #scr-title .kicker{display:none}
   .lvl{padding:6px 6px 5px;gap:2px;border-radius:12px}
-  .lvl-img{display:none}
   .lvl-t{font-size:16px}
   .duck-btn{width:66px;height:66px;bottom:10px}
 }
@@ -135,10 +135,10 @@ a.btn{text-decoration:none;display:inline-block}
   .t-col{gap:8px}
   .card-title{column-gap:20px}
 }
-/* совсем низкий экран стоя: без вступительной фразы — правила и кнопка важнее */
-@media (max-width:639px) and (max-height:600px){
-  #t-lead{display:none}
-}
+/* заставка сама подстраивается под высоту экрана (fitTitle): если не влезает без прокрутки —
+   сначала убираем вступительную фразу (превью уровней важнее), и только если и так не влезло — превью */
+.card-title.fit-lead #t-lead{display:none}
+.card-title.fit-img .lvl-img{display:none}
 </style>
 <script>/* @vkontakte/vk-bridge 3.0.2, MIT */
 (()=>{"use strict";let e;var t={};let p="u">typeof window,n=!!(p&&window.AndroidBridge),o=!!(p&&window.webkit?.messageHandlers?.VKWebAppClose),r=!!(p&&window.ReactNativeWebView&&"function"==typeof window.ReactNativeWebView.postMessage),i=p&&!n&&!o,a=i&&/(^\?|&)vk_platform=mobile_web(&|$)/.test(location.search),s=i?"message":"VKWebAppEvent",d=["VKWebAppInit","VKWebAppGetCommunityAuthToken","VKWebAppAddToCommunity","VKWebAppAddToHomeScreenInfo","VKWebAppClose","VKWebAppCopyText","VKWebAppCreateHash","VKWebAppGetUserInfo","VKWebAppSetLocation","VKWebAppSendToClient","VKWebAppGetClientVersion","VKWebAppGetPhoneNumber","VKWebAppGetEmail","VKWebAppGetGroupInfo","VKWebAppGetGeodata","VKWebAppGetCommunityToken","VKWebAppGetConfig","VKWebAppGetLaunchParams","VKWebAppSetTitle","VKWebAppGetAuthToken","VKWebAppCallAPIMethod","VKWebAppJoinGroup","VKWebAppLeaveGroup","VKWebAppAllowMessagesFromGroup","VKWebAppDenyNotifications","VKWebAppAllowNotifications","VKWebAppOpenPayForm","VKWebAppOpenApp","VKWebAppShare","VKWebAppShowWallPostBox","VKWebAppScroll","VKWebAppShowOrderBox","VKWebAppShowLeaderBoardBox","VKWebAppShowInviteBox","VKWebAppShowRequestBox","VKWebAppAddToFavorites","VKWebAppShowStoryBox","VKWebAppStorageGet","VKWebAppStorageGetKeys","VKWebAppStorageSet","VKWebAppFlashGetInfo","VKWebAppSubscribeStoryApp","VKWebAppOpenWallPost","VKWebAppCheckAllowedScopes","VKWebAppCheckBannerAd","VKWebAppHideBannerAd","VKWebAppShowBannerAd","VKWebAppCheckNativeAds","VKWebAppShowNativeAds","VKWebAppRetargetingPixel","VKWebAppConversionHit","VKWebAppShowSubscriptionBox","VKWebAppCheckSurvey","VKWebAppShowSurvey","VKWebAppScrollTop","VKWebAppScrollTopStart","VKWebAppScrollTopStop","VKWebAppShowSlidesSheet","VKWebAppTranslate","VKWebAppRecommend","VKWebAppAddToProfile","VKWebAppGetFriends",...i&&!a?["VKWebAppResizeWindow","VKWebAppAddToMenu","VKWebAppShowInstallPushBox","VKWebAppShowCommunityWidgetPreviewBox","VKWebAppCallStart","VKWebAppCallJoin","VKWebAppCallGetStatus"]:["VKWebAppShowImages"]],A=p?window.AndroidBridge:void 0,b=o?window.webkit.messageHandlers:void 0,l=i?parent:void 0,u=function(t){var p;let a,u,W,V,K=[],c=Math.random().toString(36).substring(2,5);function w(e){K.push(e)}function S(e){return n?!!(A&&"function"==typeof A[e]):o?!!(b?.[e]&&"function"==typeof b[e].postMessage):!!i&&d.includes(e)}function f(){return o||n}function h(){return i&&window.parent!==window}function g(){return f()||h()}function v(e){if(o||n)return[...K].map(t=>t.call(null,e));let t=e?.data;if(!i||!t)return;if(r&&"string"==typeof t)try{t=JSON.parse(t)}catch{}let{type:p,data:s,frameId:d}=t;if(p){if("VKWebAppSettings"===p){a=d;return}[...K].map(e=>e({detail:{type:p,data:s}}))}}r&&/(android)/i.test(navigator.userAgent)?document.addEventListener(s,v):"u">typeof window&&"addEventListener"in window&&window.addEventListener(s,v);let y=(p=function(e,p){A?.[e]?A[e](JSON.stringify(p)):b?.[e]&&"function"==typeof b[e].postMessage?b[e].postMessage?.(p):r?window.ReactNativeWebView.postMessage(JSON.stringify({handler:e,params:p})):l&&"function"==typeof l.postMessage&&l.postMessage({handler:e,params:p,type:"vk-connect",webFrameId:a,connectVersion:t},"*")},u={current:0,next(){return++this.current}},W={},V={add(e,t){let p=null!=t?t:`${u.next()}_${c}`;return W[p]=e,p},resolve(e,t,p){let n=W[e];n&&(p(t)?n.resolve(t):n.reject(t),W[e]=null)}},w(e=>{if(e.detail?.data&&"object"==typeof e.detail.data&&"request_id"in e.detail.data){let{request_id:t,...p}=e.detail.data;t&&V.resolve(t,p,e=>!("error_type"in e))}}),function(e,t={}){return new Promise((n,o)=>{let r=V.add({resolve:n,reject:o},t.request_id);p(e,{...t,request_id:r})})});async function m(t){if(n||o)return S(t);if(e)return e.has(t);try{let t=await y("SetSupportedHandlers");e=new Set(t.supportedHandlers)}catch(t){e=new Set(["VKWebAppInit"])}return e.has(t)}return w(t=>{t.detail&&"SetSupportedHandlers"===t.detail.type&&(e=new Set(t.detail.data.supportedHandlers))}),{send:y,sendPromise:y,subscribe:w,unsubscribe:function(e){let t=K.indexOf(e);t>-1&&K.splice(t,1)},supports:function(e){return console.warn("bridge.supports method is deprecated. Use bridge.supportsAsync instead."),S(e)},supportsAsync:m,isWebView:f,isIframe:h,isEmbedded:g,isStandalone:function(){return!g()}}}("3.0.2");window.vkBridge=window.vkConnect=u;var W=window;for(var V in t)W[V]=t[V];t.__esModule&&Object.defineProperty(W,"__esModule",{value:!0})})();
@@ -4140,7 +4140,20 @@ $('card-invite').addEventListener('click', () => vkAct(vkInvite));
 /* ================= интерфейс ================= */
 const scr = { title: $('scr-title'), pause: $('scr-pause'), result: $('scr-result') };
 const hudBtns = $('hud-btns'), duckBtn = $('btn-duck');
-function show(name) { for (const k in scr) scr[k].hidden = k !== name; }
+function show(name) { for (const k in scr) scr[k].hidden = k !== name; if (name === 'title') fitTitle(); }
+// заставка на невысоком экране: если всё не влезает без прокрутки, сначала прячем вступительную фразу;
+// если и так не влезло — прячем превью тренировок, а фразу возвращаем, когда она помещается
+const titleCard = scr.title.querySelector('.card');
+function fitTitle() {
+  const c = titleCard, cl = c.classList;
+  cl.remove('fit-lead', 'fit-img');
+  if (!c.clientHeight) return;                        // заставка скрыта — подгоним, когда её покажут
+  const over = () => c.scrollHeight > c.clientHeight + 1;
+  if (!over()) return;
+  cl.add('fit-lead'); if (!over()) return;
+  cl.remove('fit-lead'); cl.add('fit-img'); if (!over()) return;
+  cl.add('fit-lead');
+}
 function hideScreens() { for (const k in scr) scr[k].hidden = true; }
 function focusIn(el) { const b = el && el.querySelector('.btn-main:not([hidden])'); if (b) { try { b.focus({ preventScroll: true }); } catch (e) { /* фокус не обязателен */ } } }
 const lvlBtns = [...document.querySelectorAll('.lvl')];
@@ -4161,6 +4174,7 @@ function setLevel(i) {
   $('t-duck').textContent = TOUCH ? LV.howDuck + '. Или держи кнопку внизу слева' : LV.howDuck;
   $('k-boost').textContent = LV.boostChip; $('t-boost').textContent = LV.howBoost;
   lvlBtns.forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.level === li)));
+  fitTitle();                                          // у уровней разные тексты — заново подгоняем заставку
   if (MAR) { if (!SNG.bufs[0] && !SNG.failed[0]) marLoad(0); loadSprites(2); }
   else if (!A.bufs[LV.id] && !A.failed[LV.id]) loadMusic(LV);
   loadSprites(LV.num);
@@ -4172,6 +4186,7 @@ function refreshBest() {
     if (lv.marathon) el.textContent = b && b.d ? 'рекорд ' + fmtInt(b.d) + ' м · ' + b.s + ' ' + plural(b.s, ['песня', 'песни', 'песен']) : 'рекорда пока нет';
     else el.textContent = b ? 'рекорд ' + fmtTime(b) : 'не пройден';
   });
+  fitTitle();
 }
 // рекорды: на устройстве и (внутри ВК) в хранилище ВК — чтобы не терялись и были одни на телефоне и компьютере
 const vkBestKey = (lv) => 'best_' + lv.id;                  // ключ ВК: только латиница, цифры, _ и -
@@ -4390,7 +4405,7 @@ function vkStart() {
     else if (d.type === 'VKWebAppViewRestore') appHide(false);
     else if ((d.type === 'VKWebAppUpdateConfig' || d.type === 'VKWebAppUpdateInsets') && d.data) vkInsets(d.data.insets);
   });
-  $('t-vk').hidden = false;
+  $('t-vk').hidden = false; fitTitle();
   vkLoadBest();
 }
 
@@ -4419,8 +4434,13 @@ function frame(now) {
 function boot(data) {
   setMuted(data && typeof data.muted === 'boolean' ? data.muted : A.muted);
   layout();
-  if ('ResizeObserver' in window) new ResizeObserver(() => layout()).observe($('game'));
-  else window.addEventListener('resize', layout);
+  const relayout = () => { layout(); fitTitle(); };   // и при отступах ВК: они меняют размер #game
+  if ('ResizeObserver' in window) new ResizeObserver(relayout).observe($('game'));
+  else window.addEventListener('resize', relayout);
+  if (document.fonts) {                                // шрифты меняют высоту текста — подгоняем заставку заново
+    if (document.fonts.ready) document.fonts.ready.then(fitTitle).catch(() => {});
+    if (document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', fitTitle);
+  }
   if (document.fonts && document.fonts.load) {
     Promise.all([document.fonts.load('400 40px Prata'), document.fonts.load('800 20px Onest'), document.fonts.load('700 14px Onest')])
       .then(() => { for (const L of LAYERS) L.cache.clear(); }).catch(() => {});
