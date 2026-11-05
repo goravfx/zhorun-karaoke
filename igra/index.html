@@ -133,7 +133,23 @@ a.btn{text-decoration:none;display:inline-block}
 }
 @media (min-width:640px) and (max-height:560px){
   .t-col{gap:8px}
-  .card-title{column-gap:20px}
+  .card-title{column-gap:20px;grid-template-columns:1.15fr 1fr}
+  /* телефон боком: название в одну строку, превью тренировок шире и ниже — влезают вместе с «Бежать».
+     Ширина колонки — от ширины экрана без выреза (--sal/--sar), чтобы надпись не вылезала за край */
+  .card-title h1{font-size:min(34px,calc((100vw - var(--sal,0px) - var(--sar,0px)) * .0505 - 6px));white-space:nowrap}
+  .lvl-img{aspect-ratio:12/5}
+  .lvl:not(.lvl-mar) .lvl-t{font-size:max(13px,min(16px,calc((100vw - var(--sal,0px) - var(--sar,0px)) * .0252 - 4.5px)))}
+}
+/* совсем низкий экран боком (Андроид с адресной строкой, окно ВК) */
+@media (min-width:640px) and (max-height:330px){
+  .screen{padding-block:6px}
+  .card{padding:10px 16px}
+  .t-col{gap:6px}
+  .howto{gap:4px}
+  .howto li{line-height:1.3}
+  .btn-main{padding-block:11px}
+  .fine{margin-top:2px}                       /* «18+» не налезает на тень кнопки */
+  .lvl-img{aspect-ratio:3/1}
 }
 /* заставка сама подстраивается под высоту экрана (fitTitle): если не влезает без прокрутки —
    сначала убираем вступительную фразу (превью уровней важнее), и только если и так не влезло — превью */
@@ -4142,17 +4158,23 @@ const scr = { title: $('scr-title'), pause: $('scr-pause'), result: $('scr-resul
 const hudBtns = $('hud-btns'), duckBtn = $('btn-duck');
 function show(name) { for (const k in scr) scr[k].hidden = k !== name; if (name === 'title') fitTitle(); }
 // заставка на невысоком экране: если всё не влезает без прокрутки, сначала прячем вступительную фразу;
-// если и так не влезло — прячем превью тренировок, а фразу возвращаем, когда она помещается
+// если и так не влезло — превью тренировок (а фразу возвращаем, если она помещается). Превью прячем,
+// только если от этого правда становится лучше: боком лишнее бывает в правой колонке, где превью нет
 const titleCard = scr.title.querySelector('.card');
+const FIT = [[], ['fit-lead'], ['fit-img'], ['fit-lead', 'fit-img']];
 function fitTitle() {
   const c = titleCard, cl = c.classList;
-  cl.remove('fit-lead', 'fit-img');
+  const set = (s) => { cl.remove('fit-lead', 'fit-img'); for (const k of s) cl.add(k); };
+  set(FIT[0]);
   if (!c.clientHeight) return;                        // заставка скрыта — подгоним, когда её покажут
-  const over = () => c.scrollHeight > c.clientHeight + 1;
-  if (!over()) return;
-  cl.add('fit-lead'); if (!over()) return;
-  cl.remove('fit-lead'); cl.add('fit-img'); if (!over()) return;
-  cl.add('fit-lead');
+  let best = FIT[0], bestOver = Infinity;
+  for (const s of FIT) {
+    set(s);
+    const over = c.scrollHeight - c.clientHeight;
+    if (over <= 1) return;
+    if (over < bestOver - 1) { best = s; bestOver = over; }
+  }
+  set(best);
 }
 function hideScreens() { for (const k in scr) scr[k].hidden = true; }
 function focusIn(el) { const b = el && el.querySelector('.btn-main:not([hidden])'); if (b) { try { b.focus({ preventScroll: true }); } catch (e) { /* фокус не обязателен */ } } }
