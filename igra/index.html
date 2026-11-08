@@ -27,6 +27,12 @@ body{height:100%;margin:0;background:var(--velvet);color:var(--cream);font-famil
 #game{position:relative;width:100%;height:100%;overflow:hidden;touch-action:none;background:#2c1c48}
 #cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 .hud-btns{position:absolute;top:10px;right:10px;display:flex;gap:8px;z-index:3}
+.skip-btn{position:absolute;right:12px;bottom:max(14px,env(safe-area-inset-bottom));z-index:3;padding:9px 16px;font-size:14px;min-height:0}
+.dip-name-row{display:flex;flex-direction:column;gap:6px;width:100%;max-width:360px;margin:0 auto}
+.dip-name-row label{font:700 13px/1.2 var(--ui);color:#f3c24f;letter-spacing:.06em;text-transform:uppercase}
+.dip-name-row input{font:600 17px/1.2 var(--ui);color:#fff3dc;background:rgba(20,6,14,.55);border:2px solid #f3c24f;border-radius:12px;padding:10px 12px;outline:none;width:100%;box-sizing:border-box}
+.dip-name-row input::placeholder{color:rgba(255,243,220,.5)}
+.dip-name-row input:focus{border-color:#ffd86b;box-shadow:0 0 0 3px rgba(243,194,79,.3)}
 .icon-btn{width:44px;height:44px;border-radius:50%;border:1px solid rgba(243,194,79,.6);background:rgba(42,21,13,.55);
   color:var(--cream);display:grid;place-items:center;cursor:pointer;padding:0}
 .icon-btn svg{width:20px;height:20px;display:block}
@@ -173,6 +179,8 @@ a.btn{text-decoration:none;display:inline-block}
     </button>
   </div>
 
+  <button class="btn btn-ghost skip-btn" id="btn-skip" type="button" hidden>Пропустить</button>
+
   <button class="duck-btn" id="btn-duck" type="button" aria-label="Пригнуться — держи" hidden>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l6 6 6-6"/><path d="M6 12l6 6 6-6"/></svg>
     <span>пригнуться</span>
@@ -234,6 +242,10 @@ a.btn{text-decoration:none;display:inline-block}
     <div class="card card-pic">
       <h2 id="card-title" class="sr">Картинка с рекордом</h2>
       <img id="card-img" alt="Картинка с результатом марафона" width="1080" height="1350">
+      <div class="dip-name-row" id="dip-name-row" hidden>
+        <label for="dip-name">Имя в диплом</label>
+        <input id="dip-name" type="text" maxlength="40" autocomplete="name" enterkeyhint="done" placeholder="Впиши своё имя">
+      </div>
       <p class="best" id="card-note">Нажми на картинку и подержи — сохранится в галерею</p>
       <div class="row" id="card-vk" hidden>
         <button class="btn btn-main" id="card-story" type="button" hidden>В историю</button>
@@ -353,7 +365,7 @@ LEVELS.push({ id: 'marathon', num: 1, kind: 'swamp', marathon: true, title: 'М�
   label: 'Игра «Остановысь Мразня», марафон: 19 песен Жоруна подряд — Мандалупа бежит и швыряется вещами, Жорун догоняет, сзади гонятся индюки',
   lead: '19 песен Жоруна подряд, и с каждой всё быстрее. Мандалупа бежит и швыряется чем попало. Сколько продержишься?',
   howJump: 'Прыжок через сено, свиней, собак, чемоданы, ящики и арбузы', howDuck: 'Пригнуться под гусями, коврами, воблой и портретами',
-  boostChip: 'Страус и ванна', howBoost: 'Страус бежит навстречу, дед на ванне догоняет сзади — запрыгни, и тебя повезут',
+  boostChip: 'Ускорители', howBoost: 'Страус, буйвол с полицейским, дед на ванне и «Волга» с группой — запрыгни, и тебя повезут',
   goalNear: 'Болото близко!', boostHint: 'Запрыгни на страуса!', boostStat: 'Прокатился:',
   resLabel: 'пробежал', loseLabel: 'пробежал', winKicker: 'Марафон пройден', winTitle: 'Догнал!' });
 const MAR_LV = LEVELS.length - 1;
@@ -407,7 +419,7 @@ function loadOldHeads() { if (HEADS.run) return; HEAD_NAMES.forEach((n) => { con
 
 /* ================= спрайты: рисованный арт ================= */
 // имя: [ширина, высота, уровень]; уровень 0 нужен везде, 1 и 2 — только своему уровню
-const SP_META = {zh_run: [265, 300, 0], zh_jump: [248, 300, 0], zh_duck: [257, 300, 0], zh_hit: [245, 300, 0], zh_danger: [262, 300, 0], zh_ride: [269, 300, 0], zh_win: [252, 300, 0], zh_lose: [252, 300, 0], zh_dive: [274, 300, 0], zh_torso: [230, 240, 0], zh_arm_u: [95, 150, 0], zh_arm_f: [124, 150, 0], zh_arm_o: [116, 160, 0], zh_leg_u: [69, 170, 0], zh_leg_l: [210, 187, 0], md_neutral: [320, 305, 0], md_scream: [320, 292, 0], md_smile: [308, 320, 0], md_yell: [319, 320, 0], md_hair: [167, 260, 0], md_hair_veil: [172, 260, 1], md_veil: [320, 187, 1], md1_torso: [170, 200, 1], md1_skirt: [220, 162, 1], md1_arm_u: [66, 120, 1], md1_arm_l: [81, 150, 1], md_leg_u: [51, 120, 0], md1_leg_l: [141, 150, 1], md2_torso: [155, 240, 2], md2_gown: [300, 292, 2], md2_arm_u: [59, 130, 2], md2_arm_g: [95, 130, 2], md2_arm_o: [76, 140, 2], md2_leg_l: [105, 130, 2], turkey: [380, 303, 0], turkey_lu: [70, 110, 0], turkey_ll: [93, 120, 0], ostrich: [620, 572, 1], ostrich_lu: [100, 170, 1], ostrich_ll: [130, 220, 1], pig: [360, 216, 0], pig_leg: [64, 90, 0], goose: [340, 168, 0], goose_wing: [240, 199, 0], croc: [560, 170, 1], dog: [360, 234, 2], dog_tail: [83, 120, 2], chicken_w: [200, 170, 2], chicken_b: [200, 168, 2], chicken_leg: [66, 70, 2], babushka_1: [203, 230, 2], babushka_2: [196, 230, 2], babushka_3: [199, 230, 2], babushka_full: [152, 260, 2], ded: [300, 237, 2], car_body: [960, 421, 2], car_bogie: [300, 104, 2], car_rail: [180, 140, 2], car_wheel: [110, 110, 2], tractor: [640, 367, 2], tractor_wheel: [297, 300, 2], tub: [560, 322, 2], fan_blades: [300, 297, 2], fan_cage: [297, 300, 2], can_red: [193, 230, 1], can_green: [208, 230, 1], carpet: [446, 620, 1], hay_bale: [260, 196, 0], post: [82, 560, 0], suitcase_b: [230, 201, 2], suitcase_g: [230, 199, 2], trunk: [270, 211, 2], frame: [206, 250, 2], crate_cab: [260, 216, 2], crate_tom: [260, 183, 2], crate_mel: [260, 214, 2], fish_rope: [480, 220, 2], house_white: [340, 211, 0], house_tall: [230, 320, 0], gas: [340, 222, 1], stage: [360, 239, 1], billboard: [340, 305, 1], tree_apple: [250, 260, 0], poplar: [100, 300, 0], haystack: [220, 240, 0], cow: [280, 186, 0], old_car: [300, 135, 1], fence: [320, 144, 0], fence_carpet: [320, 165, 0], sunflowers: [148, 230, 0], bush: [220, 183, 0], pole: [185, 300, 0], reeds_1: [420, 403, 1], reeds_2: [420, 290, 1], lily_1: [170, 76, 1], lily_2: [170, 73, 1], lily_3: [150, 66, 1], duck: [150, 110, 1], croc_head: [220, 121, 1], water_lily: [120, 74, 1], stall_red: [380, 320, 2], stall_teal: [380, 273, 2], stall_yellow: [380, 339, 2], stall_purple: [380, 316, 2], pile_apples: [190, 150, 2], pile_cabbages: [190, 152, 2], pile_plums: [190, 139, 2], pile_potatoes: [190, 140, 2], pile_tomatoes: [190, 151, 2], pile_watermelons: [190, 156, 2], crates_stack: [251, 300, 2], basket: [158, 170, 2], milk_can: [94, 150, 2], sack: [163, 170, 2], festoon: [520, 154, 2], wheat_1: [420, 195, 2], wheat_2: [420, 185, 2], cliff: [391, 700, 2], far_bank: [640, 175, 2], cloud_1: [300, 163, 0], cloud_2: [300, 174, 0], cloud_3: [300, 199, 0], fire_tall: [113, 220, 1], fire_m1: [102, 180, 1], fire_m2: [114, 180, 1], fire_s1: [92, 130, 1], fire_s2: [78, 120, 1], smoke_1: [320, 116, 0], smoke_2: [260, 134, 0], splash_big: [360, 270, 0], splash_small: [230, 204, 0], water_ring: [320, 65, 0], icon_cliff: [111, 112, 0], icon_swamp: [105, 112, 0], icon_turkey: [111, 112, 0], level_1: [480, 270, 0], level_2: [480, 270, 0]};
+const SP_META = {md_smile_full: [308, 320, 3], md_smile_full_hd: [556, 580, 3], md_yell_hd: [578, 580, 3], volga_band: [1024, 469, 2], volga_body: [1024, 351, 2], volga_wheel: [200, 200, 2], buffalo_body: [900, 425, 2], buffalo_leg_front: [222, 432, 2], buffalo_leg_back: [237, 438, 2], buffalo_tail: [155, 320, 2], policeman_ride_a: [353, 600, 2], policeman_ride_b: [353, 600, 2], wedding_table: [800, 407, 3], cans: [320, 315, 3], bow: [192, 220, 3], balloons: [251, 420, 3], heart_wreath: [340, 302, 3], diploma_frame: [1024, 1536, 4], tooth_box: [202, 240, 3], gold_tooth: [196, 300, 3], trumpeter_stage_a: [349, 560, 3], trumpeter_stage_b: [349, 560, 3], accordionist_stage_a: [419, 560, 3], accordionist_stage_b: [419, 560, 3], drummer_stage_a: [425, 560, 3], drummer_stage_b: [425, 560, 3], guitarist_stage_a: [407, 560, 3], guitarist_stage_b: [407, 560, 3], zh_run: [265, 300, 0], zh_jump: [248, 300, 0], zh_duck: [257, 300, 0], zh_hit: [245, 300, 0], zh_danger: [262, 300, 0], zh_ride: [269, 300, 0], zh_win: [252, 300, 0], zh_lose: [252, 300, 0], zh_dive: [274, 300, 0], zh_torso: [230, 240, 0], zh_arm_u: [95, 150, 0], zh_arm_f: [124, 150, 0], zh_arm_o: [116, 160, 0], zh_leg_u: [69, 170, 0], zh_leg_l: [210, 187, 0], md_neutral: [320, 305, 0], md_scream: [320, 292, 0], md_smile: [308, 320, 0], md_yell: [319, 320, 0], md_hair: [167, 260, 0], md_hair_veil: [172, 260, 1], md_veil: [320, 187, 1], md1_torso: [170, 200, 1], md1_skirt: [220, 162, 1], md1_arm_u: [66, 120, 1], md1_arm_l: [81, 150, 1], md_leg_u: [51, 120, 0], md1_leg_l: [141, 150, 1], md2_torso: [155, 240, 2], md2_gown: [300, 292, 2], md2_arm_u: [59, 130, 2], md2_arm_g: [95, 130, 2], md2_arm_o: [76, 140, 2], md2_leg_l: [105, 130, 2], turkey: [380, 303, 0], turkey_lu: [70, 110, 0], turkey_ll: [93, 120, 0], ostrich: [620, 572, 1], ostrich_lu: [100, 170, 1], ostrich_ll: [130, 220, 1], pig: [360, 216, 0], pig_leg: [64, 90, 0], goose: [340, 168, 0], goose_wing: [240, 199, 0], croc: [560, 170, 1], dog: [360, 234, 2], dog_tail: [83, 120, 2], chicken_w: [200, 170, 2], chicken_b: [200, 168, 2], chicken_leg: [66, 70, 2], babushka_1: [203, 230, 2], babushka_2: [196, 230, 2], babushka_3: [199, 230, 2], babushka_full: [152, 260, 2], ded: [300, 237, 2], car_body: [960, 421, 2], car_bogie: [300, 104, 2], car_rail: [180, 140, 2], car_wheel: [110, 110, 2], tractor: [640, 367, 2], tractor_wheel: [297, 300, 2], tub: [560, 322, 2], fan_blades: [300, 297, 2], fan_cage: [297, 300, 2], can_red: [193, 230, 1], can_green: [208, 230, 1], carpet: [446, 620, 1], hay_bale: [260, 196, 0], post: [82, 560, 0], suitcase_b: [230, 201, 2], suitcase_g: [230, 199, 2], trunk: [270, 211, 2], frame: [206, 250, 2], crate_cab: [260, 216, 2], crate_tom: [260, 183, 2], crate_mel: [260, 214, 2], fish_rope: [480, 220, 2], house_white: [340, 211, 0], house_tall: [230, 320, 0], gas: [340, 222, 1], stage: [360, 239, 1], billboard: [340, 305, 1], tree_apple: [250, 260, 0], poplar: [100, 300, 0], haystack: [220, 240, 0], cow: [280, 186, 0], old_car: [300, 135, 1], fence: [320, 144, 0], fence_carpet: [320, 165, 0], sunflowers: [148, 230, 0], bush: [220, 183, 0], pole: [185, 300, 0], reeds_1: [420, 403, 1], reeds_2: [420, 290, 1], lily_1: [170, 76, 1], lily_2: [170, 73, 1], lily_3: [150, 66, 1], duck: [150, 110, 1], croc_head: [220, 121, 1], water_lily: [120, 74, 1], stall_red: [380, 320, 2], stall_teal: [380, 273, 2], stall_yellow: [380, 339, 2], stall_purple: [380, 316, 2], pile_apples: [190, 150, 2], pile_cabbages: [190, 152, 2], pile_plums: [190, 139, 2], pile_potatoes: [190, 140, 2], pile_tomatoes: [190, 151, 2], pile_watermelons: [190, 156, 2], crates_stack: [251, 300, 2], basket: [158, 170, 2], milk_can: [94, 150, 2], sack: [163, 170, 2], festoon: [520, 154, 2], wheat_1: [420, 195, 2], wheat_2: [420, 185, 2], cliff: [391, 700, 2], far_bank: [640, 175, 2], cloud_1: [300, 163, 0], cloud_2: [300, 174, 0], cloud_3: [300, 199, 0], fire_tall: [113, 220, 1], fire_m1: [102, 180, 1], fire_m2: [114, 180, 1], fire_s1: [92, 130, 1], fire_s2: [78, 120, 1], smoke_1: [320, 116, 0], smoke_2: [260, 134, 0], splash_big: [360, 270, 0], splash_small: [230, 204, 0], water_ring: [320, 65, 0], icon_cliff: [111, 112, 0], icon_swamp: [105, 112, 0], icon_turkey: [111, 112, 0], level_1: [480, 270, 0], level_2: [480, 270, 0]};
 const SP = {};                       // загруженные картинки по имени
 const SPD = {};                      // затемнённые копии — для дальних рук и ног
 const SPL = {};                      // обещания загрузки по номеру уровня
@@ -581,6 +593,13 @@ const SFX = {
   cluck() { tone(950, 620, 0.06, 'square', 0.045); tone(1050, 700, 0.05, 'square', 0.04, 0.09); tone(880, 560, 0.07, 'square', 0.04, 0.17); },
   crash() { noiseHit(0.7, 0.45, 650); noiseHit(0.35, 0.25, 2400, 0.05); tone(110, 38, 0.6, 'sine', 0.4); },
   song() { tone(784, 790, 0.16, 'triangle', 0.11); tone(1047, 1052, 0.3, 'triangle', 0.11, 0.12); },
+  honk2() { tone(466, 466, 0.12, 'square', 0.055, 0.42); tone(392, 392, 0.22, 'square', 0.055, 0.56); },
+  moo() { tone(150, 112, 0.7, 'sawtooth', 0.07); tone(152, 118, 0.6, 'triangle', 0.08, 0.05); },
+  whistle() { for (let k = 0; k < 6; k++) tone(2500 + (k & 1) * 260, 2500 + (k & 1) * 260, 0.07, 'sine', 0.06, k * 0.07); },
+  click() { noiseHit(0.04, 0.2, 3200); tone(1800, 900, 0.05, 'square', 0.03); },
+  ding() { [1568, 2093, 2637].forEach((f, i) => tone(f, f, 0.9, 'sine', 0.12, i * 0.05)); tone(3136, 3136, 0.5, 'triangle', 0.05, 0.12); },
+  whizz() { tone(500, 1500, 0.5, 'sine', 0.025); },
+  pop() { noiseHit(0.35, 0.16, 900); tone(160, 60, 0.25, 'sine', 0.12); },
 };
 
 /* ================= марафон: 19 песен подряд ================= */
@@ -667,6 +686,7 @@ function marUpdate() {
 function marNextSong() {
   const d = marSong().end + MAR_GAP;
   SNG.passed++; SNG.i++;
+  if (SNG.i === MARATHON.length - 1) finPrefetch();
   if (SNG.nxt && SNG.nxt.i === SNG.i) SNG.cur = SNG.nxt; else { marStopOne(SNG.cur, 0.3); SNG.cur = null; }
   SNG.nxt = null;
   for (const k of Object.keys(SNG.bufs)) if (+k < SNG.i) delete SNG.bufs[k];      // прошлые песни — из памяти
@@ -722,7 +742,7 @@ function marTypes() {
 // рекорд марафона — по метрам; храним и сколько песен прошёл
 function marRecord(win) {
   const best = store.get(BEST_KEY, null) || {}, d = Math.round(G.dist), n = win ? MARATHON.length : SNG.passed;
-  G.newBest = d > (best.d || 0);
+  G.newBest = !FIN.test && d > (best.d || 0);
   if (G.newBest) bestSave(LV, { d, s: n, t: Math.round(G.time) });
   G.mar = { d, s: n, at: SNG.i, win, best: G.newBest ? { d, s: n } : best };
 }
@@ -1688,6 +1708,11 @@ function zPose(pose, ph, t) {
       P.armF = [-2.2 + Math.cos(t * 27) * 0.5, -0.4]; P.armB = [2.3 + Math.sin(t * 30) * 0.5, 0.5];
       P.tilt = Math.sin(t * 24) * 0.12;
       break;
+    case 'rideB':   // верхом позади полицейского: бёдра вниз по боку буйвола, голени висят
+      P.hipY = 0; P.lean = 0.04;
+      P.legF = [0.72, 0.98]; P.legB = [0.6, 0.86];
+      P.armF = [2.45 + Math.sin(t * 9) * 0.3, 0.35]; P.armB = [1.0, 0.9];
+      break;
     case 'ride':
       P.hipY = 0; P.lean = 0.06;
       P.legF = [1.35, 1.55]; P.legB = [1.15, 1.35];
@@ -1703,6 +1728,23 @@ function zPose(pose, ph, t) {
       P.lean = 0.08; P.bob = Math.sin(t * 3) * 1.5;
       P.legF = [0.1, 0.1]; P.legB = [-0.1, 0.1];
       P.armF = [1.75 + Math.sin(t * 4) * 0.08, 0.5]; P.armB = [1.45, 0.6];
+      break;
+    case 'dance': {                                    // свадьба: руки вверх, пружинит в коленях
+      const q = Math.sin(ph), a = Math.abs(q);
+      P.lean = 0.02; P.bob = -a * 6; P.hipY = -54 + a * 4;
+      P.legF = [0.18 + q * 0.12, 0.18 + a * 0.4]; P.legB = [-0.18 + q * 0.12, 0.18 + a * 0.4];
+      P.armF = [-2.6 + q * 0.45, -0.35 - a * 0.3]; P.armB = [2.5 + q * 0.4, 0.35 + a * 0.3]; P.tilt = q * 0.08;
+      break;
+    }
+    case 'kiss':
+      P.lean = 0.3; P.bob = Math.sin(t * 3) * 1.2;
+      P.legF = [0.22, 0.1]; P.legB = [-0.2, 0.18];
+      P.armF = [1.5, 0.75]; P.armB = [1.3, 0.85]; P.tilt = 0.12;
+      break;
+    case 'drive':
+      P.hipY = 0; P.lean = 0.0;
+      P.legF = [1.45, 1.5]; P.legB = [1.3, 1.4];
+      P.armF = [1.25 + Math.sin(t * 3) * 0.05, 0.55]; P.armB = [1.05, 0.65]; P.tilt = Math.sin(t * 2.2) * 0.04;
       break;
     case 'fall':
       P.fall = 1.45 * smooth(pl.fallT); P.lean = 0.2;
@@ -1852,7 +1894,7 @@ function drawZhorunS(g, x, y, pose, ph, t, headKey, alpha, layer) {
   const hy = P.hipY + P.bob, tr = P.lean + P.rot, ct = Math.cos(tr), st = Math.sin(tr);
   const loc = (q) => [(q[0] - ZR.pel[0]) * tw, (q[1] - ZR.pel[1]) * th];
   const TP = (q) => { const [lx, ly] = loc(q); return [lx * ct - ly * st, hy + lx * st + ly * ct]; };
-  const open = pose === 'win' || pose === 'hug' || pose === 'fall' || pose === 'stumble' || pose === 'dive';
+  const open = pose === 'win' || pose === 'hug' || pose === 'fall' || pose === 'stumble' || pose === 'dive' || pose === 'dance' || pose === 'kiss';
   g.save(); g.translate(x, y);
   if (alpha < 1) g.globalAlpha = alpha;
   if (P.fall) g.rotate(P.fall);
@@ -2164,7 +2206,7 @@ function drawBrideS(g, x, y, t) {
   g.save(); g.translate(0, wy); g.rotate(lean);
   const sw = run ? sn * 0.06 : Math.sin(t * 2) * 0.02;
   g.save(); g.translate(0, 2); g.rotate(sw); spr(g, MR.skirt.img, 0, 0, MR.skirt.w, MR.skirt.ax, MR.skirt.ay); g.restore();
-  const face = hold || thr ? 'yell' : burning ? (Math.sin(t * 3) > 0.6 ? 'yell' : 'scream') : (wade ? 'smile' : 'neutral'), tilt = run ? Math.sin(t * 13) * 0.04 : 0;
+  const face = M.face || (hold || thr ? 'yell' : burning ? (Math.sin(t * 3) > 0.6 ? 'yell' : 'scream') : (wade ? 'smile' : 'neutral')), tilt = run ? Math.sin(t * 13) * 0.04 : 0;
   mHeadS(g, face, nk[0], nk[1], tilt, 'back');          // пряди под челюстью — за плечами
   mNeckS(g, loc, 'l1', face, nk, tilt);                   // шея выходит из-под воротника
   g.drawImage(SP[T.img], -T.waist[0] * tw, -T.waist[1] * th, tw, th);
@@ -2210,6 +2252,8 @@ function drawBride2S(g, x, y, t, sc) {
   else if (swim && won) { ba = 1.5; bb = 0.5; fa = 1.75 + Math.sin(t * 4) * 0.08; fb = 0.45; }
   else if (swim) { ba = 2.3 + Math.sin(t * 7) * 0.6; bb = 0.4; fa = 2.5 + Math.sin(t * 7 + 1.6) * 0.6; fb = 0.3; }
   else if (lost) { ba = -0.3; bb = 1.0; fa = 2.7 + Math.sin(t * 10) * 0.35; fb = 0.25; }
+  else if (M.kiss > 0.4) { ba = 1.7; bb = 0.6; fa = 1.9; fb = 0.5; }                                   // свадьба: «Горько!» — обнимает
+  else if (M.dance) { const q = Math.sin(t * 5.65); ba = 2.55 + q * 0.35; bb = 0.35; fa = 2.4 - q * 0.35; fb = 0.3; }   // танцует, руки вверх
   else { ba = 0.3 + Math.sin(t * 2.5) * 0.08; bb = -1.7; fa = 0.15; fb = 0.35; }          // дальняя рука на бедре, ближняя свободно
   // волосы и дальняя рука — позади головы
   const grip = holding || M.throwT > 0;
@@ -2226,7 +2270,7 @@ function drawBride2S(g, x, y, t, sc) {
   g.save(); g.translate(0, wy); g.rotate(lean);
   const sw = fall ? Math.sin(t * 9) * 0.08 : Math.sin(t * 2) * 0.02;
   g.save(); g.rotate(sw); spr(g, MR.gown.img, 0, 0, spW(MR.gown.img, MR.gown.h), MR.gown.ax, MR.gown.ay); g.restore();
-  const mouth = (won || lost) ? 'smile' : (holding || M.throwT > 0 ? 'yell' : ((fall || (swim && G.state === 'finale')) ? 'scream' : 'neutral'));
+  const mouth = M.face || ((won || lost) ? 'smile' : (holding || M.throwT > 0 ? 'yell' : ((fall || (swim && G.state === 'finale')) ? 'scream' : 'neutral')));
   const tilt = fall ? Math.sin(t * 12) * 0.06 : 0;
   mHeadS(g, mouth, nk[0], nk[1], tilt, 'back');
   mNeckS(g, loc, 'l2', mouth, nk, tilt);
@@ -2745,13 +2789,14 @@ function drawDed(g, x, y, ph) {
   E(g, x + 12, y - 44.5, 7, 2.6); fs(g, '#f4f1ea', 1.4);
   g.strokeStyle = 'rgba(120,70,40,.5)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x - 4, y - 66); g.quadraticCurveTo(x + 2, y - 68, x + 8, y - 66); g.moveTo(x - 6, y - 62); g.quadraticCurveTo(x, y - 64, x + 6, y - 62); g.stroke();
 }
-// ванна-картинка: мотор и шест с пропеллером слева, колёса внизу. Перед ванны рисуем ещё раз поверх седока
-const TUB_W = 214;
+// ванна-картинка: мотор и шест с пропеллером слева. Под рамой — ржавые колёса от вагонетки (картинка car_wheel),
+// ради них ванна поднята на TUB_LIFT. Перед ванны рисуем ещё раз поверх седока
+const TUB_W = 214, TUB_LIFT = 10;
 // дед-водитель в одном масштабе с Жоруном (лицо почти того же размера); Жорун сидит в ванне по грудь
-const DED_W = 112, DED_Y = 0.26, TUB_SEAT = -30;
-const drawDedS = (g, x, ph) => spr(g, 'ded', x, -spH('tub', TUB_W) * DED_Y + Math.sin(ph * 0.9) * 1.2, DED_W, 0.42, 0.96);
+const DED_W = 112, DED_Y = 0.26, TUB_SEAT = -30 - TUB_LIFT, TUB_CLIP = -26 - TUB_LIFT;   // TUB_CLIP — ниже этой линии ноги седока прячутся в ванне
+const drawDedS = (g, x, ph) => spr(g, 'ded', x, -spH('tub', TUB_W) * DED_Y - TUB_LIFT + Math.sin(ph * 0.9) * 1.2, DED_W, 0.42, 0.96);
 function tubImg(g, front) {
-  const h = spH('tub', TUB_W), x0 = -TUB_W * 0.56, y0 = -h * 0.98;
+  const h = spH('tub', TUB_W), x0 = -TUB_W * 0.56, y0 = -h * 0.98 - TUB_LIFT;
   if (!front) { g.drawImage(SP.tub, x0, y0, TUB_W, h); return; }
   // перед ванны — от ближнего края бортика вниз; внутренняя стенка (выше) остаётся позади седоков
   g.save(); g.beginPath(); g.rect(x0 + 0.13 * TUB_W, y0 + 0.545 * h, 0.86 * TUB_W, 0.33 * h); g.clip(); g.drawImage(SP.tub, x0, y0, TUB_W, h); g.restore();
@@ -2760,16 +2805,20 @@ function drawTubBackS(g, x, ph, glow, rider) {
   if (!SP.tub || !SP.fan_blades) { drawTubBack(g, x, ph, glow); return; }
   g.save(); g.translate(x, 0);
   if (glow) { g.globalAlpha = 0.32 + 0.22 * Math.sin(ph * 0.7); E(g, -10, -70, 116, 82); g.fillStyle = '#ffe08a'; g.fill(); g.globalAlpha = 1; }
-  const h = spH('tub', TUB_W), fx = -TUB_W * 0.56 + 0.245 * TUB_W, fy = -h * 0.98 + 0.07 * h;
+  const h = spH('tub', TUB_W), fx = -TUB_W * 0.56 + 0.245 * TUB_W, fy = -h * 0.98 + 0.07 * h - TUB_LIFT;
   g.save(); g.translate(fx, fy); g.rotate(ph * 2.4); spr(g, 'fan_blades', 0, 0, 86, 0.5, 0.5); g.restore();
   spr(g, 'fan_cage', fx, fy, 92, 0.5, 0.5);
   tubImg(g, false);
   if (!rider) drawDedS(g, -38, ph);     // сидит в ванне: низ скрыт передней стенкой
   g.restore();
 }
-function drawTubFrontS(g, x) {
+function drawTubFrontS(g, x, ph) {
   if (!SP.tub) { drawTubFront(g, x); return; }
-  g.save(); g.translate(x, 0); tubImg(g, true); g.restore();
+  g.save(); g.translate(x, 0); tubImg(g, true);
+  // колёса — на осях у концов рамы (на картинке там торчат втулки); нижний край колеса — на земле
+  const h = spH('tub', TUB_W), x0 = -TUB_W * 0.56, wy = -h * 0.98 + 0.918 * h - TUB_LIFT, r = -wy;
+  if (SP.car_wheel) for (const f of [0.168, 0.837]) { g.save(); g.translate(x0 + f * TUB_W, wy); g.rotate((ph || 0) * 1.6); spr(g, 'car_wheel', 0, 0, r * 2.16, 0.5, 0.5); g.restore(); }
+  g.restore();
 }
 function drawTubBack(g, x, ph, glow) {
   g.save(); g.translate(x, 0);
@@ -2981,6 +3030,7 @@ function resetRun() {
   resetManda(); resetTrain();
   if (TRAIN) for (const L of LAYERS) L.cache.clear();      // участки уровня 2 и обрыв привязаны к началу забега
   parts.length = 0; input.keyDuck = false; input.btnDuck = false; input.swipeHold = false; ptrs.clear();
+  finReset();
 }
 
 /* ---------- препятствия ---------- */
@@ -3153,7 +3203,8 @@ function mount() {
   const O = G.ostrich; O.state = 'ridden';
   pl.ride = RIDE_TIME; pl.onGround = false; pl.vy = 0; pl.y = 0; pl.ducking = false; pl.slideT = 0;
   G.rides++; G.T = Math.max(0, G.T - 0.2);
-  SFX.mount(); if (O.kind === 'tub') SFX.honk();
+  SFX.mount(); if (O.kind === 'tub' || O.kind === 'volga') SFX.honk();
+  if (O.kind === 'buff') { O.look = 1.4; SFX.whistle(); }
   dust(pl.x, 0, 10, 120, true); G.flash = 0.3;
 }
 function dismount() {
@@ -3165,12 +3216,16 @@ function ostrichLogic(dt) {
   const O = G.ostrich;
   if (!O) {
     if (G.time >= G.nextOstrich && pl.ride <= 0 && !G.final && remaining() > 90 && G.state === 'play') {
-      if (MAR) { G.boostN++; (G.boostN % 2 === 0 ? spawnTub : spawnOstrich)(); }   // марафон: страус и ванна по очереди
+      if (MAR) {                                    // марафон: страус, «Волга», ванна, буйвол — по очереди
+        G.boostN++; const k = BOOST_ORDER[(G.boostN - 1) % BOOST_ORDER.length];
+        (k === 'tub' ? spawnTub : k === 'volga' ? spawnVolga : k === 'buff' ? spawnBuff : spawnOstrich)();
+      }
       else (TRAIN ? spawnTub : spawnOstrich)();
     }
     return;
   }
   O.ph += dt * 14;
+  if (boostLogic2(O, dt)) return;
   if (O.kind === 'tub') {
     if (O.state === 'run') {
       O.x += G.speed * 1.45 * dt;
@@ -3180,7 +3235,7 @@ function ostrichLogic(dt) {
     } else if (O.state === 'ridden') O.x = pl.x;
     else if (O.state === 'leave') { O.x += Math.max(300, G.speed) * 1.7 * dt; if (O.x > pl.x + VW + 300) G.ostrich = null; }
     if (O.state !== 'ridden') tubPlow(O);
-    if (Math.random() < dt * 14) addPart({ k: 'smoke', x: O.x - 122, y: 52, vx: G.speed * 0.6, vy: rnd(40, 80), r: rnd(5, 8), t: 0, life: rnd(0.5, 0.8) });
+    if (Math.random() < dt * 14) addPart({ k: 'smoke', x: O.x - 122, y: 52 + TUB_LIFT, vx: G.speed * 0.6, vy: rnd(40, 80), r: rnd(5, 8), t: 0, life: rnd(0.5, 0.8) });
     return;
   }
   if (O.state === 'run') {
@@ -3502,6 +3557,7 @@ function updateSeq(dt) {
     if (TRAIN) pl.y += (-(RIVER_Y + SWIM) + Math.sin(G.anim * 2.4) * 2 - pl.y) * Math.min(1, dt * 4);
     if (Math.random() < dt * 5) hearts(pl.x + 44, heartY() - 4, 1);
     updateObstacles(dt, false); ostrichLogic(dt);
+    if (MAR && G.seqT > 1.4) { finStart(); return; }
     if (G.seqT > 2.8 && !G.resultShown) showResult(true);
   } else {
     G.speed = Math.max(0, G.speed - dt * 900);
@@ -3526,6 +3582,7 @@ function updateIdle(dt) {
 }
 // уровень 2: у обрыва камера опускается, чтобы было видно реку
 function camTarget() {
+  if (FIN.on && (G.state === 'wedding' || G.state === 'credits')) return -finLift();
   if (!TRAIN || G.state === 'title') return 0;
   const near = G.state === 'finale' || G.state === 'win-seq' || (G.state === 'result' && G.won) || (G.state === 'play' && remaining() < 14);
   return near ? Math.max(0, RIVER_Y + 64 - (H - GY) / S) : 0;
@@ -3537,6 +3594,7 @@ function update(dt) {
   if (G.state === 'play') updatePlay(dt);
   else if (G.state === 'finale') updateFinale(dt);
   else if (G.state === 'win-seq' || G.state === 'lose-seq') updateSeq(dt);
+  else if (FIN.on && (G.state === 'tooth' || G.state === 'wedding' || G.state === 'credits')) finUpdate(dt);
   else updateIdle(dt);
   G.camY += (camTarget() - G.camY) * Math.min(1, dt * 2.2);
   updateTrain(dt);
@@ -3552,7 +3610,7 @@ function botThink() {
   input.keyDuck = false;
   const O = G.ostrich;
   if (O && O.state === 'run') {
-    if (O.kind === 'tub') { const dx = pl.x - O.x, rel = Math.max(1, G.speed * 0.45); if (dx > 0 && dx / rel < 0.36 && pl.onGround) pl.jumpBuf = 0.13; }
+    if (O.kind === 'tub' || O.kind === 'volga') { const dx = pl.x - O.x, rel = Math.max(1, G.speed * (O.kind === 'volga' ? 0.5 : 0.45)); if (dx > 0 && dx / rel < 0.36 && pl.onGround) pl.jumpBuf = 0.13; }
     else { const dx = O.x - pl.x, rel = Math.max(1, G.speed * 0.45); if (dx > 0 && dx / rel < 0.36 && pl.onGround) pl.jumpBuf = 0.13; }
   }
   let ahead = null;
@@ -3622,9 +3680,9 @@ function drawObstacle(o, ex) {
 function drawPlayer() {
   let pose = 'run', head = 'run';
   const st = G.state;
-  const inWater = st === 'win-seq' || (st === 'result' && G.won);
+  const inWater = st === 'win-seq' || st === 'tooth' || (st === 'result' && G.won);
   if (st === 'finale') { pose = pl.vy > 0 ? 'jump' : 'dive'; head = 'win'; }
-  else if (inWater) { pose = G.seqT > 1.2 || st === 'result' ? 'hug' : 'win'; head = 'win'; }
+  else if (inWater) { pose = G.seqT > 1.2 || st === 'result' || st === 'tooth' ? 'hug' : 'win'; head = 'win'; }
   else if (st === 'lose-seq' || (st === 'result' && !G.won)) { pose = 'fall'; head = 'lose'; }
   else if (pl.stumble > 0) { pose = 'stumble'; head = 'hit'; }
   else if (!pl.onGround) { pose = pl.vy > -150 ? 'jump' : 'fallair'; head = 'jump'; }
@@ -3663,9 +3721,11 @@ function drawEntities(camX, shx, shy) {
   const O = G.ostrich;
   if (O && O.state !== 'ridden') {
     const ex = O.x - camX;
-    if (ex > -260 && ex < VW + 260) {
-      shadow(ex, 0, 50);
-      if (O.kind === 'tub') { drawTubBackS(ctx, ex, O.ph, O.state === 'run', false); drawTubFrontS(ctx, ex); }
+    if (ex > -260 - (O.kind === 'volga' ? VOL.L : 0) && ex < VW + 260) {
+      shadow(shadowX(O, ex), 0, O.kind === 'volga' ? 150 : O.kind === 'buff' ? 100 : 50);
+      if (O.kind === 'tub') { drawTubBackS(ctx, ex, O.ph, O.state === 'run', false); drawTubFrontS(ctx, ex, O.ph); }
+      else if (O.kind === 'volga') drawVolga(ctx, ex, O.ph, false);
+      else if (O.kind === 'buff') drawBuff(ctx, ex, O.ph, false, false);
       else drawOstrichS(ctx, ex, 0, O.ph, O.state === 'run' ? 1 : 0);
     }
   }
@@ -3689,8 +3749,12 @@ function drawEntities(camX, shx, shy) {
   if (pl.ride > 0 && O && O.kind === 'tub') {
     shadow(PX, 0, 62); drawTubBackS(ctx, PX, O.ph, false, true);
     if (SP.ded) drawDedS(ctx, PX - 43, O.ph);
-    ctx.save(); ctx.beginPath(); ctx.rect(PX - 200, -420, 400, 394); ctx.clip();     // ноги прячутся в ванне
-    drawZhorunS(ctx, PX + 22, TUB_SEAT, 'ride', pl.ph, G.anim, 'ride', 1); ctx.restore(); drawTubFrontS(ctx, PX);
+    ctx.save(); ctx.beginPath(); ctx.rect(PX - 200, -420, 400, 420 + TUB_CLIP); ctx.clip();     // ноги прячутся в ванне
+    drawZhorunS(ctx, PX + 22, TUB_SEAT, 'ride', pl.ph, G.anim, 'ride', 1); ctx.restore(); drawTubFrontS(ctx, PX, O.ph);
+  } else if (pl.ride > 0 && O && O.kind === 'volga') {
+    shadow(shadowX(O, PX), 0, 150); drawVolga(ctx, PX, O.ph, true);
+  } else if (pl.ride > 0 && O && O.kind === 'buff') {
+    shadow(shadowX(O, PX), 0, 100); drawBuff(ctx, PX, O.ph, true, O.look > 0);
   } else if (pl.ride > 0 && O) {
     // дальняя рука и нога — за страусом, остальное — поверх
     shadow(PX, 0, 54); const sy = ostrichSeat(O.ph);
@@ -3700,6 +3764,7 @@ function drawEntities(camX, shx, shy) {
   }
   else drawPlayer();
   drawFlock();
+  if (FIN.on && G.state === 'tooth') toothBoxDraw(camX);
   drawParts(camX, false);
 }
 function hudText(str, x, y, font, fill, align, stroke) {
@@ -3839,6 +3904,11 @@ function drawHUD() {
     pill(10, GY - 220 * S - 18, 112, 36, '◀ ванна!', '800 15px ' + F_UI);
     ctx.globalAlpha = 1;
   }
+  if (st === 'play' && Ob && Ob.kind === 'volga' && Ob.state === 'run' && (Ob.x - pl.x + PX) * S < 40) {
+    ctx.globalAlpha = 0.7 + 0.3 * Math.sin(G.anim * 10);
+    pill(10, GY - 220 * S - 18, 124, 36, '◀ «Волга»!', '800 15px ' + F_UI);
+    ctx.globalAlpha = 1;
+  }
   if (G.hint && st === 'play') {
     ctx.globalAlpha = clamp(G.hint.t / 0.4, 0, 1);
     let fz = PORTRAIT ? 26 : 30;
@@ -3938,8 +4008,8 @@ function drawDebugItem(it) {
       croc: () => drawCrocS(ctx, 0, ph), crocOld: () => drawCroc(ctx, 0, ph),
       car: () => { ctx.save(); ctx.scale(0.5, 0.5); ctx.translate(-180, 0); drawCarS(ctx, ph * 40); drawCarRailS(ctx); ctx.restore(); },
       tractor: () => { ctx.save(); ctx.scale(0.6, 0.6); ctx.translate(-100, 0); drawTractorS(ctx, ph * 40, t); ctx.restore(); },
-      tub: () => { drawTubBackS(ctx, 0, ph, false, false); drawTubFrontS(ctx, 0); },
-      tubRide: () => { drawTubBackS(ctx, 0, ph, false, true); drawDedS(ctx, -43, 0); ctx.save(); ctx.beginPath(); ctx.rect(-200, -420, 400, 394); ctx.clip(); drawZhorunS(ctx, 22, TUB_SEAT, 'ride', ph, t, 'ride', 1); ctx.restore(); drawTubFrontS(ctx, 0); },
+      tub: () => { drawTubBackS(ctx, 0, ph, false, false); drawTubFrontS(ctx, 0, ph); },
+      tubRide: () => { drawTubBackS(ctx, 0, ph, false, true); drawDedS(ctx, -43, 0); ctx.save(); ctx.beginPath(); ctx.rect(-200, -420, 400, 420 + TUB_CLIP); ctx.clip(); drawZhorunS(ctx, 22, TUB_SEAT, 'ride', ph, t, 'ride', 1); ctx.restore(); drawTubFrontS(ctx, 0, ph); },
       ostRide: () => { const sy = ostrichSeat(ph); drawZhorunS(ctx, -20, sy + 8, 'ride', ph, t, 'ride', 1, 'far'); drawOstrichS(ctx, 0, 0, ph, 0); drawZhorunS(ctx, -20, sy + 8, 'ride', ph, t, 'ride', 1, 'near'); } }[it.a];
     if (f) f();
   }
@@ -3974,7 +4044,7 @@ function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   for (const L of (MAR ? BG_MAR : BG_NEAR)) drawLayer(L, camX, shx, shy);
   drawSwampBack(camX, shx, shy);
-  drawEntities(camX, shx, shy);
+  if (!(FIN.on && finRenderWorld(camX, shx, shy))) drawEntities(camX, shx, shy);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   drawLayer(MAR ? FRONTM : FRONT, camX, shx, shy);
   drawSwampFront(camX, shx, shy);
@@ -3986,7 +4056,9 @@ function render() {
     ctx.globalCompositeOperation = 'source-over';
     if (PAL.ta > 0.2) fireLight(camX, shx, shy);
   }
+  if (FIN.on) finRenderLights(shx, shy);
   drawFx();
+  finRenderOverlay();
   drawHUD();
 }
 
@@ -4070,9 +4142,12 @@ let cardURL = null, sharing = false;
 function closeCard() {
   cardScr.hidden = true;
   if (cardURL) { URL.revokeObjectURL(cardURL); cardURL = null; }
+  $('dip-name-row').hidden = true; $('card-close').textContent = 'Назад'; $('card-title').textContent = 'Картинка с рекордом';
+  if (FIN.dip) { FIN.dip = false; if (G.state !== 'result') { showResult(true); return; } }
   if (G.state === 'result') { scr.result.hidden = false; focusIn(scr.result); }
 }
 async function shareCard() {
+  if (G.mar && G.mar.win && FIN.on) { FIN.dip = true; await dipVkName(); dipShow(); return; }
   if (sharing) return;
   sharing = true;
   try {
@@ -4129,11 +4204,11 @@ async function vkShareOpen(blob, name, snap) {
 function vkShareText() {
   const R = G.mar || { d: Math.round(G.dist), s: SNG.passed, at: SNG.i, win: G.won };
   return R.win
-    ? 'Прошёл весь марафон Жоруна: 19 песен, ' + fmtInt(R.d) + ' м — догнал Мандалупу в болоте! Сможешь так же?'
+    ? 'Прошёл весь марафон Жоруна: 19 песен, ' + fmtInt(R.d) + ' м — догнал Мандалупу, вставил ей золотой зуб и погулял на свадьбе! Сможешь так же?'
     : 'Пробежал ' + fmtInt(R.d) + ' м от индюков в марафоне Жоруна, догнали на песне «' + MARATHON[clamp(R.at, 0, MARATHON.length - 1)].t + '». Сможешь дальше?';
 }
 async function vkStory() {
-  const base = { background_type: 'image', blob: makeShareCard(true, VK.snap).toDataURL('image/jpeg', 0.9) };
+  const base = { background_type: 'image', blob: (FIN.dip ? makeDiploma(true) : makeShareCard(true, VK.snap)).toDataURL('image/jpeg', 0.9) };
   try { await VK.b.send('VKWebAppShowStoryBox', Object.assign({ attachment: { text: 'play', type: 'url', url: VK.url } }, base)); }
   catch (e) {
     if (vkDenied(e)) return;
@@ -4152,6 +4227,989 @@ async function vkAct(fn) { if (vkBusy) return; vkBusy = true; try { await fn(); 
 $('card-story').addEventListener('click', () => vkAct(vkStory));
 $('card-wall').addEventListener('click', () => vkAct(vkWall));
 $('card-invite').addEventListener('click', () => vkAct(vkInvite));
+
+/* ================= марафон: «Волга» с группой и буйвол с полицейским ================= */
+// «Волга» догоняет сзади, как ванна: Жорун запрыгивает и садится на крышку багажника.
+// Буйвол с полицейским бежит впереди медленнее, как страус: Жорун запрыгивает ему на спину позади полицейского.
+// O.x — то место, где сидит Жорун. Пока нет картинок от Codex, обе штуки нарисованы кодом (vol…/buf… — заглушки).
+const VOL = { L: 400, rear: 0.508, seat: -91, wheelR: 32, wheels: [0.222, 0.713], belt: -103 };   // доли — от заднего бампера; rear — где сидит Жорун (перед трубачом)
+// картинки «Волги» от Codex, 1024 px в ширину: бамперы на 16…1008 px, центры колёсных арок — на высоте arch px
+const VOLS = { body: { arch: 330 }, band: { arch: 446 } };
+// буйвол от Codex — в пикселях картинки тела (1024 px в ширину; ноги и хвост нарезаны в том же масштабе):
+// земля под копытами, где сидят Жорун и полицейский (x и верх спины), суставы ног — центр шара наверху ноги
+const BUF = { L: 220 };
+const BUFS = { ground: 708, zh: [150, 84], cop: [350, 89], front: 575, hind: 205, legF: [96.5, 97, 317], legB: [127.5, 104, 316], tail: [34, 188] };
+const BOOST_ORDER = ['os', 'volga', 'tub', 'buff'];
+function spawnVolga() {
+  const dist = PX + 320, rel = Math.max(160, G.speed * 0.5);
+  G.ostrich = { kind: 'volga', x: pl.x - dist, ph: 0, state: 'run' };
+  const c = clock();
+  G.blockFrom = c + dist / rel - 1.1; G.blockTo = c + dist / rel + 1.4;
+  G.obs = G.obs.filter((o) => o.enter || !(o.tArr > G.blockFrom && o.tArr < G.blockTo && o.x - pl.x > VW - PX));
+  if (M.carry && M.carry.tA > G.blockFrom && M.carry.tA < G.blockTo) M.carry = null;
+  const hk = LV.id + ':volga';
+  if (!G.boostHinted[hk]) { G.boostHinted[hk] = true; G.hint = { text: 'Сзади «Волга» с группой — прыгай!', t: 2.8 }; }
+  SFX.honk(); SFX.honk2();
+}
+function spawnBuff() {
+  const dist = VW - PX + 220, rel = Math.max(140, G.speed * 0.45);
+  G.ostrich = { kind: 'buff', x: pl.x + dist, ph: 0, state: 'run', look: 0 };
+  const c = clock();
+  G.blockFrom = c + dist / rel - 1.1; G.blockTo = c + dist / rel + 1.3;
+  G.obs = G.obs.filter((o) => !(o.tArr > G.blockFrom && o.tArr < G.blockTo && o.x - pl.x > VW - PX));
+  const hk = LV.id + ':buff';
+  if (!G.boostHinted[hk]) { G.boostHinted[hk] = true; G.hint = { text: 'Буйвол с полицейским — запрыгни сзади!', t: 2.8 }; }
+  SFX.moo();
+}
+// «Волга» длинная: сбивает всё, что попадает под неё
+function volPlow(O) {
+  const x0 = O.x - VOL.L * VOL.rear - 10, x1 = x0 + VOL.L + 20;
+  for (const o of G.obs) if (!o.knock && !o.done && !o.enter && !o.high && o.x + o.w / 2 > x0 && o.x - o.w / 2 < x1) knock(o, true);
+}
+function boostLogic2(O, dt) {
+  if (O.kind === 'volga') {
+    if (O.state === 'run') {
+      O.x += G.speed * 1.5 * dt;
+      const dx = O.x - pl.x;
+      if (!pl.onGround && Math.abs(dx) < 72 && pl.y > 24 && pl.stumble <= 0 && G.state === 'play') mount();
+      else if (dx > 84) { O.state = 'leave'; G.nextOstrich = G.time + rnd(20, 30); }
+    } else if (O.state === 'ridden') O.x = pl.x;
+    else if (O.state === 'leave') { O.x += Math.max(320, G.speed) * 1.8 * dt; if (O.x - VOL.L * VOL.rear > pl.x + VW + 120) G.ostrich = null; }
+    volPlow(O);
+    if (Math.random() < dt * 9) addPart({ k: 'smoke', x: O.x - VOL.L * VOL.rear - 8, y: 20, vx: -40, vy: rnd(20, 50), r: rnd(4, 7), t: 0, life: rnd(0.4, 0.7) });
+    return true;
+  }
+  if (O.kind === 'buff') {
+    if (O.state === 'run') {
+      O.x += G.speed * 0.55 * dt;
+      const dx = pl.x - O.x;
+      if (!pl.onGround && Math.abs(dx) < 64 && pl.y > 24 && pl.stumble <= 0 && G.state === 'play') mount();
+      else if (O.x < pl.x - PX - 280) { G.ostrich = null; G.nextOstrich = G.time + rnd(20, 30); }
+    } else if (O.state === 'ridden') O.x = pl.x;
+    else if (O.state === 'leave') { O.x += Math.max(300, G.speed) * 1.6 * dt; if (O.x - 120 > pl.x + VW + 120) G.ostrich = null; }
+    O.look = Math.max(0, (O.look || 0) - dt);
+    if (Math.random() < dt * 9) dust(O.x - 80, 0, 1, -30, true);
+    return true;
+  }
+  return false;
+}
+
+// ---------- «Волга»: картинка от Codex (volga_band / volga_body + колесо) или заглушка ----------
+function volWheel(g, x, y, r, a) {
+  if (SP.volga_wheel) { const q = r / 0.958; g.save(); g.translate(x, y); g.rotate(a); g.drawImage(SP.volga_wheel, -q, -q, q * 2, q * 2); g.restore(); return; }
+  E(g, x, y, r, r); fs(g, '#1f1b19', 2.6);
+  E(g, x, y, r * 0.72, r * 0.72); fs(g, '#f4f1ea', 1.6);                 // белая боковина
+  E(g, x, y, r * 0.5, r * 0.5); fs(g, '#d9dde6', 1.6);                   // хромированный колпак
+  g.strokeStyle = 'rgba(42,21,13,.55)'; g.lineWidth = 1.6; g.beginPath();
+  for (let k = 0; k < 4; k++) { const aa = a + k * TAU / 4; g.moveTo(x + Math.cos(aa) * r * 0.16, y + Math.sin(aa) * r * 0.16); g.lineTo(x + Math.cos(aa) * r * 0.46, y + Math.sin(aa) * r * 0.46); }
+  g.stroke(); E(g, x, y, r * 0.16, r * 0.16); fs(g, '#ff74b6', 1.4);
+}
+// x0 — задний бампер; band — с группой в салоне
+function volBody(g, x0, L, ph, band) {
+  const R = VOL.wheelR, wy = -R, X = (f) => x0 + f * L, bounce = Math.sin(ph * 0.9) * 1.2;
+  const img = band ? SP.volga_band : SP.volga_body;
+  if (img) {
+    // колёса — за кузовом: арки пустые, колесо видно сквозь них
+    for (const f of VOL.wheels) volWheel(g, X(f), wy, R, ph);
+    const k = L / 992, w = 1024 * k, h = w * img.height / img.width;
+    g.drawImage(img, x0 - 16 * k, wy - (band ? VOLS.band : VOLS.body).arch * k + bounce, w, h);
+    return;
+  }
+  g.save(); g.translate(0, bounce);
+  // заглушка: розовый кабриолет с хромом
+  g.beginPath();
+  g.moveTo(X(0.0), -34); g.lineTo(X(0.01), -64); g.quadraticCurveTo(X(0.02), -84, X(0.08), -84);
+  g.lineTo(X(0.7), -84); g.quadraticCurveTo(X(0.86), -82, X(0.97), -70); g.quadraticCurveTo(X(1.0), -62, X(1.0), -44);
+  g.lineTo(X(1.0), -34);
+  for (const f of [...VOL.wheels].reverse()) { g.lineTo(X(f) + R + 6, -34); g.arc(X(f), wy, R + 6, 0, Math.PI, true); }
+  g.closePath(); fs(g, '#ff6fb1', 3);
+  g.save(); g.clip();
+  const gl = g.createLinearGradient(0, -84, 0, -34); gl.addColorStop(0, 'rgba(255,255,255,.45)'); gl.addColorStop(0.35, 'rgba(255,255,255,0)'); gl.addColorStop(1, 'rgba(120,20,70,.25)');
+  g.fillStyle = gl; g.fillRect(x0 - 10, -90, L + 20, 60);
+  for (let q = 0; q < 26; q++) { const sx = X((q * 0.0383 + 0.013) % 1), sy = -40 - ((q * 17) % 40); E(g, sx, sy, 1.4, 1.4); g.fillStyle = 'rgba(255,240,250,.8)'; g.fill(); }
+  g.restore();
+  RR(g, X(0.03), -58, L * 0.94, 4, 2); fs(g, '#e9edf3', 1.4);         // хромовая полоса
+  RR(g, X(-0.015), -42, 26, 10, 4); fs(g, '#e9edf3', 2);                // бамперы
+  RR(g, X(0.985), -46, 22, 12, 4); fs(g, '#e9edf3', 2);
+  E(g, X(0.985), -60, 7, 8); fs(g, '#fff6c8', 2);                        // фара
+  RR(g, X(0.005), -72, 7, 12, 3); fs(g, '#e8323c', 1.6);                 // фонарь
+  // сиденья и лобовое стекло
+  RR(g, X(0.28), -110, L * 0.1, 30, 8); fs(g, '#f3e2c0', 2.4);
+  RR(g, X(0.45), -108, L * 0.09, 28, 8); fs(g, '#f3e2c0', 2.4);
+  g.beginPath(); g.moveTo(X(0.6), -84); g.lineTo(X(0.55), -134); g.lineTo(X(0.58), -134); g.lineTo(X(0.64), -84); g.closePath();
+  g.fillStyle = 'rgba(190,230,255,.45)'; g.fill(); g.lineWidth = 3; g.strokeStyle = '#d6dbe4'; g.stroke();
+  // хромированный олень на капоте
+  g.beginPath(); g.moveTo(X(0.9), -80); g.lineTo(X(0.93), -96); g.lineTo(X(0.955), -92); g.lineTo(X(0.945), -84); g.closePath(); fs(g, '#e9edf3', 1.8);
+  if (band) volBandStub(g, X, ph);
+  g.restore();
+  for (const f of VOL.wheels) volWheel(g, X(f), wy, R, ph);
+}
+// заглушка группы в машине: силуэты с узнаваемыми приметами
+function volBandStub(g, X, ph) {
+  const bob = (k) => Math.sin(ph * 0.9 + k) * 2;
+  const head = (x, y, skin, hair) => { E(g, x, y, 13, 14); fs(g, skin, 2.4); if (hair) hair(x, y); };
+  const body = (x, y, col) => { RR(g, x - 15, y, 30, 34, 10); fs(g, col, 2.4); };
+  // сзади: барабанщик с ирокезом и палочками, аккордеонист в гриме
+  body(X(0.38), -118 + bob(0), '#e8b48f');
+  head(X(0.38), -128 + bob(0), '#f1b48b', (x, y) => { g.beginPath(); g.moveTo(x - 4, y - 12); g.lineTo(x - 2, y - 30); g.lineTo(x + 2, y - 13); g.lineTo(x + 4, y - 28); g.lineTo(x + 6, y - 11); g.closePath(); fs(g, '#e8322c', 2); });
+  g.lineWidth = 3; g.strokeStyle = '#c99a5b'; g.beginPath(); g.moveTo(X(0.36), -136 + bob(0)); g.lineTo(X(0.33), -160 + bob(0)); g.moveTo(X(0.41), -136 + bob(0)); g.lineTo(X(0.45), -158 + bob(0)); g.stroke();
+  body(X(0.47), -116 + bob(1), '#22325e');
+  head(X(0.47), -126 + bob(1), '#fbfbf6', (x, y) => { E(g, x - 4, y - 2, 4, 5); fs(g, '#111', 0); E(g, x + 5, y - 2, 4, 5); fs(g, '#111', 0); RR(g, x - 9, y - 15, 18, 6, 3); fs(g, '#4a2c1c', 0); });
+  RR(g, X(0.44), -106 + bob(1), 26, 18, 3); fs(g, '#f6f3ec', 2);
+  // спереди: гитаристка за рулём, рядом трубач
+  body(X(0.6), -116 + bob(2), '#7b2a63');
+  head(X(0.6), -126 + bob(2), '#f4c9a8', (x, y) => { E(g, x - 7, y - 4, 10, 15); fs(g, '#f0cf68', 2); });
+  body(X(0.66), -118 + bob(3), '#1a1a1d');
+  head(X(0.66), -128 + bob(3), '#f2b49a', (x, y) => { RR(g, x - 13, y - 14, 9, 30, 4); fs(g, '#eef0f2', 2); });
+  g.lineWidth = 4; g.strokeStyle = '#e2b13c'; g.beginPath(); g.moveTo(X(0.68), -128 + bob(3)); g.lineTo(X(0.74), -150 + bob(3)); g.stroke();
+}
+// x — где сидит Жорун: в салоне между музыкантами, перед трубачом; ниже пояса его прячет дверь
+function drawVolga(g, x, ph, rider, couple) {
+  const x0 = x - VOL.L * VOL.rear, bnc = Math.sin(ph * 0.9) * 1.2;
+  volBody(g, x0, VOL.L, ph, !couple);
+  if (!rider) return;
+  g.save(); g.beginPath(); g.rect(x - 120, -460, 240, 460 + VOL.belt + bnc); g.clip();
+  drawZhorunS(g, x, VOL.seat + bnc, 'ride', pl.ph, G.anim, 'ride', 1);
+  g.restore();
+}
+
+// ---------- буйвол с полицейским ----------
+// нога: шар сустава ставим в (x, y) и поворачиваем; a > 0 — копыто уходит назад
+function bufLeg(g, x, y, a, front, dk) {
+  const name = front ? 'buffalo_leg_front' : 'buffalo_leg_back', img = dk ? dark(name, 0.3) : SP[name];
+  if (img) {
+    const k = BUF.L / 1024, P = front ? BUFS.legF : BUFS.legB, m = SP_META[name];
+    g.save(); g.translate(x, y); g.rotate(a); g.drawImage(img, -P[0] * k, -P[1] * k, m[0] * k, m[1] * k); g.restore(); return;
+  }
+  g.save(); g.translate(x, y); g.rotate(a);
+  RR(g, -9, -4, 18, 46, 8); fs(g, dk ? '#2b2a2f' : '#3b3a40', 2.4);
+  RR(g, -10, 40, 20, 10, 3); fs(g, '#1e1c1d', 2);
+  g.restore();
+}
+// хвост висит вдоль зада и качается в такт
+function bufTail(g, x, y, cs) {
+  if (!SP.buffalo_tail) return;
+  const k = BUF.L / 1024;
+  g.save(); g.translate(x, y); g.rotate(0.3 + cs * 0.12); g.drawImage(SP.buffalo_tail, -40 * k, -16 * k, 202 * k, 417 * k); g.restore();
+}
+// полицейский верхом: кадры A/B от Codex или заглушка; (x, y) — где он сидит на спине; look — обернулся на Жоруна.
+// part 'all' — весь кадр, рисуем ДО туловища буйвола: тело закроет дальнюю ногу; 'near' — после: ближняя нога и край килта
+// (в кадре ноги разведены: ближняя — левая, с флажком на гольфе, x < 315 px; дальняя — правая)
+function bufCop(g, x, y, look, part) {
+  const img = look ? SP.policeman_ride_b : SP.policeman_ride_a;
+  if (img) {
+    const k = BUF.L / 1024 * 0.8, X0 = x - 170 * k, Y0 = y - 700 * k;
+    if (part === 'near') { g.save(); g.beginPath(); g.rect(X0 - 2, Y0 + 600 * k, 317 * k, 412 * k); g.clip(); }
+    g.drawImage(img, X0, Y0, 593 * k, 1009 * k);
+    if (part === 'near') g.restore();
+    return;
+  }
+  if (part !== 'near') return;   // заглушка — целиком поверх буйвола
+  y -= 8;
+  RR(g, x - 6, y - 4, 14, 34, 6); fs(g, '#151515', 2.2);                 // нога в гольфе
+  RR(g, x - 18, y - 22, 36, 24, 8); fs(g, '#c8262c', 2.4);                // килт
+  g.save(); g.clip(); g.strokeStyle = 'rgba(20,10,10,.45)'; g.lineWidth = 2; g.beginPath();
+  for (let q = -3; q < 4; q++) { g.moveTo(x + q * 8, y - 22); g.lineTo(x + q * 8, y + 2); } g.moveTo(x - 18, y - 12); g.lineTo(x + 18, y - 12); g.stroke(); g.restore();
+  RR(g, x - 15, y - 62, 30, 44, 10); fs(g, '#1b1d22', 2.4);               // китель
+  for (let q = 0; q < 3; q++) { E(g, x + 6, y - 54 + q * 11, 2.2, 2.2); fs(g, '#e8c14a', 1); }
+  const hx = x + (look ? -4 : 3);
+  E(g, hx, y - 76, 13, 14); fs(g, '#e9b08c', 2.4);
+  RR(g, hx - 3, y - 70, 12, 3, 1.5); fs(g, '#1b1410', 0);                 // усики
+  E(g, hx + (look ? -4 : 2), y - 88, 15, 7); fs(g, '#121216', 2.2);       // берет
+  E(g, hx + (look ? -10 : 8), y - 89, 2.6, 2.6); fs(g, '#e8c14a', 1);
+  g.lineWidth = 3; g.strokeStyle = '#1b1d22'; g.beginPath(); g.moveTo(x + 10, y - 48); g.lineTo(x + 34, y - 30); g.stroke();
+}
+// x — где сидит Жорун (на крупе, за полицейским); голова буйвола справа
+const shadowX = (O, x) => O.kind === 'volga' ? x + VOL.L * (0.5 - VOL.rear) : O.kind === 'buff' ? x + (512 - BUFS.zh[0]) * BUF.L / 1024 : x;
+function drawBuff(g, x, ph, rider, look) {
+  const k = BUF.L / 1024, sn = Math.sin(ph), cs = Math.cos(ph), bob = -Math.abs(sn) * 4;
+  const X = (px) => x + (px - BUFS.zh[0]) * k, Y = (py) => -(BUFS.ground - py) * k + bob;
+  const zy = Y(BUFS.zh[1]) - 7, cx = X(BUFS.cop[0]), cy = Y(BUFS.cop[1]);
+  if (rider) drawZhorunS(g, x, zy, 'rideB', pl.ph, G.anim, 'ride', 1, 'far');
+  bufCop(g, cx, cy, !!look, 'all');
+  if (SP.buffalo_body) {
+    const fy = Y(BUFS.ground - BUFS.legF[2]), hy = Y(BUFS.ground - BUFS.legB[2]);
+    // рысь: ближняя передняя идёт в паре с дальней задней; дальние ноги — темнее и чуть сдвинуты
+    bufLeg(g, X(BUFS.front + 30), fy, -sn * 0.5, true, true);
+    bufLeg(g, X(BUFS.hind - 26), hy, sn * 0.5, false, true);
+    g.drawImage(SP.buffalo_body, X(0), Y(0), 1024 * k, 1024 * k * SP.buffalo_body.height / SP.buffalo_body.width);
+    bufTail(g, X(BUFS.tail[0]), Y(BUFS.tail[1]), cs);
+    bufLeg(g, X(BUFS.front), fy, sn * 0.5, true, false);
+    bufLeg(g, X(BUFS.hind), hy, -sn * 0.5, false, false);
+  } else {
+    bufLeg(g, x + 92, -66 + bob, -sn * 0.55, true, true);
+    bufLeg(g, x - 54, -70 + bob, sn * 0.55, false, true);
+    g.save(); g.translate(0, bob);
+    // хвост
+    g.lineWidth = 4; g.strokeStyle = '#2b2a2f'; g.beginPath(); g.moveTo(x - 86, -112); g.quadraticCurveTo(x - 104, -90 + cs * 6, x - 98, -66); g.stroke();
+    E(g, x - 98, -62, 6, 9); fs(g, '#1e1c1d', 2);
+    // туловище с горбом
+    g.beginPath(); g.ellipse(x + 10, -104, 108, 50, 0, 0, TAU); fs(g, '#3b3a40', 3);
+    g.beginPath(); g.ellipse(x + 74, -132, 42, 26, -0.3, 0, TAU); fs(g, '#3b3a40', 3);
+    g.fillStyle = 'rgba(140,110,80,.35)'; g.beginPath(); g.ellipse(x + 10, -64, 90, 12, 0, 0, TAU); g.fill();   // засохшая грязь на брюхе
+    // голова и рога
+    g.beginPath(); g.ellipse(x + 132, -104, 30, 26, 0.35, 0, TAU); fs(g, '#38373d', 3);
+    E(g, x + 150, -88, 16, 13); fs(g, '#2c2b30', 2.4);
+    E(g, x + 136, -112, 3, 3); fs(g, '#f3e7c8', 0);
+    g.beginPath(); g.moveTo(x + 116, -124); g.quadraticCurveTo(x + 78, -150, x + 96, -176); g.quadraticCurveTo(x + 92, -152, x + 124, -132); g.closePath(); fs(g, '#e9dcbc', 2.2);
+    g.beginPath(); g.moveTo(x + 140, -126); g.quadraticCurveTo(x + 178, -150, x + 168, -178); g.quadraticCurveTo(x + 166, -150, x + 132, -134); g.closePath(); fs(g, '#e2d3b0', 2.2);
+    g.restore();
+    bufLeg(g, x + 104, -64 + bob, sn * 0.55, true, false);
+    bufLeg(g, x - 42, -68 + bob, -sn * 0.55, false, false);
+  }
+  if (rider) drawZhorunS(g, x, zy, 'rideB', pl.ph, G.anim, 'ride', 1, 'near');
+  bufCop(g, cx, cy, !!look, 'near');
+}
+
+/* ================= финал марафона: золотой зуб, свадьба, титры с премьерой, диплом ================= */
+// После последней песни: Жорун ныряет за Мандалупой в болото (как раньше), вставляет ей золотой зуб,
+// дальше свадьба у сцены «ЖОРУН» под «Мандалупу», молодые уезжают на «Волге», титры под новую песню и диплом.
+const FIN = { on: false, t: 0, box: 0, inset: 0, fly: -1, ding: false, flash: 0, white: 0, black: 0, zoom: 1, fx: 0, fy: 0, test: false, dip: false };
+const WED = { t: 0, songT: 0, beat: -1, frame: 0, car: null, kiss: 0, boarded: false };
+const CRED = { t: 0, songT: 0, lines: null, total: 0 };
+MR.head.smile_full = MR.head.smile;                          // та же улыбка, только без щели: геометрия головы одна
+SKIES.wedding = Object.assign({}, SKIES.night, { ta: 0.44, tint: [104, 112, 182], stars: 1, moon: 1, cloud: 0.25 });
+SKIES.wedding.stC = SKIES.night.stC; SKIES.wedding.sunC = SKIES.night.sunC;
+const WED_SONG = MARATHON.find((s) => s.id === 'mandalupa');
+const WED_OFF = 73.38, WED_LEN = 34.6;                        // «Мандалупа» с такта 73,38 с до конца песни: громкая часть, затишье, финал
+const WED_KISS = [17.8, 23.6], WED_CAR = 24.4;               // «Горько!» — на затишье в песне; «Волга» въезжает, когда музыка снова поднимается
+
+// ---------- музыка финала: «Мандалупа» на свадьбу, новая песня на титры ----------
+const FINA = { bufs: {}, loading: {}, cur: null };
+const FIN_TRACKS = { wed: ['assets/audio/m/mandalupa.mp3', 32000], cred: ['assets/audio/fin/credits.mp3', 44100] };
+function finLoad(key) {
+  if (FINA.bufs[key]) return Promise.resolve(FINA.bufs[key]);
+  if (FINA.loading[key]) return FINA.loading[key];
+  const [url, sr] = FIN_TRACKS[key];
+  FINA.loading[key] = fetch(url)
+    .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+    .then((ab) => new Promise((res, rej) => {
+      const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      const dec = OAC ? new OAC(2, sr, sr) : audioInit();
+      if (!dec) { rej(new Error('нет WebAudio')); return; }
+      const q = dec.decodeAudioData(ab, res, rej);
+      if (q && q.then) q.then(res, rej);
+    }))
+    .then((buf) => { FINA.bufs[key] = buf; return buf; })
+    .catch((e) => { console.warn('музыка финала не загрузилась:', key, e && e.message); delete FINA.loading[key]; return null; });
+  return FINA.loading[key];
+}
+function finPrefetch() { finLoad('wed'); finLoad('cred'); loadSprites(3); }
+function finPlay(key, off) {
+  finStop(0);
+  const buf = FINA.bufs[key];
+  if (!A.ctx || !buf || G.sim) return null;
+  try {
+    const src = A.ctx.createBufferSource(), gn = A.ctx.createGain();
+    src.buffer = buf; src.connect(gn); gn.connect(A.music);
+    const now = A.ctx.currentTime, when = now + 0.04;
+    A.music.gain.cancelScheduledValues(now); A.music.gain.setValueAtTime(0.85, now);
+    src.start(when, Math.max(0, off || 0));
+    FINA.cur = { key, src, gn, t0: when - (off || 0) };
+    return FINA.cur;
+  } catch (e) { return null; }
+}
+function finStop(fade) {
+  const p = FINA.cur; FINA.cur = null;
+  if (!p || !A.ctx) return;
+  try {
+    const t = A.ctx.currentTime;
+    if (fade) { p.gn.gain.cancelScheduledValues(t); p.gn.gain.setValueAtTime(p.gn.gain.value, t); p.gn.gain.linearRampToValueAtTime(0, t + fade); p.src.stop(t + fade + 0.05); }
+    else p.src.stop();
+  } catch (e) { /* уже остановлена */ }
+}
+// время в играющей песне финала (null — музыки нет, считаем по кадрам)
+function finClock(key) {
+  const c = FINA.cur;
+  if (c && c.key === key && A.ctx && A.ctx.state === 'running' && !G.sim) return A.ctx.currentTime - c.t0;
+  return null;
+}
+
+// ---------- кнопка «Пропустить» ----------
+const skipBtn = $('btn-skip');
+function finSkip() {
+  if (G.state === 'tooth' || G.state === 'wedding') credStart();
+  else if (G.state === 'credits' && !FIN.dip) openDiploma();
+}
+skipBtn.addEventListener('click', finSkip);
+
+// ---------- 1. золотой зуб в болоте ----------
+function finStart() {
+  G.state = 'tooth'; FIN.on = true;
+  Object.assign(FIN, { t: 0, box: 0, inset: 0, fly: -1, ding: false, flash: 0, white: 0, black: 0, zoom: 1, click: false, dip: false });
+  M.face = '';
+  finPrefetch();
+  hudBtns.hidden = false; $('btn-pause').hidden = true; duckBtn.hidden = true;
+  skipBtn.hidden = false;
+}
+function toothUpdate(dt) {
+  const t = FIN.t;
+  G.speed = 0; G.T = Math.max(0, G.T - dt * 1.5);
+  // камера наезжает на пару, в конце — отъезд и вспышка
+  FIN.zoom = 1 + 0.5 * smooth(t / 1.1) * (1 - smooth((t - 4.2) / 0.7));
+  const camX = pl.x - PX, mx = M.wx - camX;
+  FIN.fx = ((PX + mx) / 2) * K; FIN.fy = (GY - 40 * S) * DPR;
+  FIN.box = t < 0.55 ? 0 : Math.min(1, (t - 0.55) / 0.3);
+  if (t > 0.55 && !FIN.click) { FIN.click = true; SFX.click(); }
+  FIN.inset = t < 1.25 ? 0 : t < 3.75 ? Math.min(1, (t - 1.25) / 0.32) : Math.max(0, 1 - (t - 3.75) / 0.3);
+  M.face = t < 1.35 ? '' : t < 2.5 ? 'yell' : 'smile_full';
+  FIN.fly = t < 1.85 ? -1 : Math.min(1, (t - 1.85) / 0.62);
+  if (t >= 2.47 && !FIN.ding) { FIN.ding = true; SFX.ding(); FIN.flash = 1; hearts(pl.x + 60, heartY() - 10, 10); }
+  FIN.flash = Math.max(0, FIN.flash - dt * 2.6);
+  if (Math.random() < dt * 4) hearts(pl.x + 44, heartY() - 4, 1);
+  FIN.white = t < 4.55 ? 0 : Math.min(1, (t - 4.55) / 0.45);
+  if (t >= 5.0) wedStart();
+}
+// коробочка с зубом в руке у Жоруна (в мире, у груди)
+function toothBoxDraw(camX) {
+  if (FIN.box <= 0) return;
+  const mx = M.wx - camX, bx = lerp(PX, mx, 0.42), by = 4 - Math.sin(G.anim * 3) * 1.5;
+  const k = FIN.box, s = k < 1 ? 0.6 + 0.5 * Math.sin(k * Math.PI * 0.75) : 1;
+  ctx.save(); ctx.translate(bx, by); ctx.scale(s * 0.42, s * 0.42);
+  drawToothBox(ctx, 0, 0, FIN.fly < 0 || FIN.fly >= 1 ? (FIN.fly >= 1 ? 0 : 1) : 0);
+  ctx.restore();
+}
+// бархатная коробочка, как для кольца; tooth — зуб ещё внутри
+function drawToothBox(g, x, y, tooth) {
+  // коробочка от Codex нарисована вместе с зубом: когда зуб вылетел — она быстро гаснет (пустую не рисуем)
+  if (SP.tooth_box) {
+    const a = tooth ? 1 : FIN.fly >= 0 && FIN.fly < 0.25 ? 1 - FIN.fly / 0.25 : 0; if (a <= 0) return;
+    const w = 90, h = w * SP.tooth_box.height / SP.tooth_box.width; g.save(); g.globalAlpha *= a; g.drawImage(SP.tooth_box, x - w / 2, y - h, w, h); g.restore(); return;
+  }
+  g.save(); g.translate(x, y);
+  RR(g, -40, -34, 80, 34, 8); fs(g, '#b5122b', 3);                       // низ
+  RR(g, -32, -40, 64, 12, 5); fs(g, '#5c0b18', 2);                       // бархатная подушечка
+  g.save(); g.translate(0, -34); g.rotate(-0.5);                          // откинутая крышка
+  RR(g, -40, -40, 80, 40, 10); fs(g, '#c71a33', 3); RR(g, -32, -34, 64, 28, 6); fs(g, '#f5e6c8', 1.6);
+  g.restore();
+  if (tooth) drawGoldTooth(g, 0, -40, 26, 0);
+  g.restore();
+}
+function drawGoldTooth(g, x, y, h, rot) {
+  if (SP.gold_tooth) { const w = h * SP.gold_tooth.width / SP.gold_tooth.height; g.save(); g.translate(x, y); g.rotate(rot); g.drawImage(SP.gold_tooth, -w / 2, -h, w, h); g.restore(); return; }
+  g.save(); g.translate(x, y); g.rotate(rot);
+  const w = h * 0.7;
+  g.beginPath(); g.moveTo(-w / 2, -h); g.lineTo(w / 2, -h); g.quadraticCurveTo(w / 2 + 2, -h * 0.4, w * 0.32, 0); g.quadraticCurveTo(0, h * 0.12, -w * 0.32, 0); g.quadraticCurveTo(-w / 2 - 2, -h * 0.4, -w / 2, -h); g.closePath();
+  const gr = g.createLinearGradient(-w / 2, -h, w / 2, 0); gr.addColorStop(0, '#fff4b0'); gr.addColorStop(0.45, '#f2bf35'); gr.addColorStop(1, '#a8650f');
+  fs(g, gr, Math.max(1.6, h * 0.07));
+  RR(g, -w * 0.28, -h * 0.9, w * 0.16, h * 0.5, w * 0.08); g.fillStyle = 'rgba(255,255,255,.75)'; g.fill();
+  g.restore();
+}
+function sparkle(g, x, y, r, a) {
+  g.save(); g.translate(x, y); g.rotate(a || 0); g.beginPath();
+  for (let k = 0; k < 8; k++) { const rr = k % 2 ? r * 0.22 : r, aa = k * Math.PI / 4; g.lineTo(Math.cos(aa) * rr, Math.sin(aa) * rr); }
+  g.closePath(); g.fillStyle = '#fffbe6'; g.fill(); g.restore();
+}
+// крупный план в круге: Мандалупа открывает рот, зуб влетает в щель, вспышка — улыбка без щели
+const HD = { yell: { img: 'md_yell_hd', lip: [0.732, 0.749] }, smile: { img: 'md_smile_full_hd', lip: [0.704, 0.674], tooth: [0.768, 0.688] } };
+function drawToothInset() {
+  const k = FIN.inset; if (k <= 0) return;
+  const s = k < 1 ? Math.sin(k * Math.PI * 0.62) / Math.sin(Math.PI * 0.62) : 1;
+  const R0 = Math.min(W * 0.4, H * 0.24) * DPR, r = R0 * (0.2 + 0.8 * s);
+  const cx = cv.width / 2, cy = Math.max(R0 / DPR + 18, Math.min(H * 0.3, GY - 230 * S)) * DPR;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = 'rgba(20,6,14,' + (0.42 * k).toFixed(3) + ')'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.clip();
+  const bg = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r); bg.addColorStop(0, '#ffe7b8'); bg.addColorStop(1, '#e88b9a');
+  ctx.fillStyle = bg; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  // голова: губы — в центре круга чуть ниже середины
+  const smile = M.face === 'smile_full', Hh = smile ? HD.smile : HD.yell, im = SP[Hh.img] || SP[smile ? 'md_smile_full' : 'md_yell'];
+  if (im) {
+    const h = r * 2.75, w = h * im.width / im.height, lx = cx - r * 0.1, ly = cy + r * 0.3;
+    ctx.drawImage(im, lx - Hh.lip[0] * w, ly - Hh.lip[1] * h, w, h);
+    // куда летит зуб — щель справа от золотого зуба
+    const tx = lx + ((HD.smile.tooth[0] - HD.smile.lip[0]) * w), ty = ly + ((HD.smile.tooth[1] - HD.smile.lip[1]) * h) - r * 0.02;
+    if (FIN.fly >= 0 && FIN.fly < 1) {
+      const q = smooth(FIN.fly), sx = cx + r * 0.7, sy = cy + r * 0.62;
+      const px = lerp(sx, tx, q), py = lerp(sy, ty, q) - Math.sin(q * Math.PI) * r * 0.35;
+      for (let n = 1; n < 6; n++) { const qq = Math.max(0, q - n * 0.05); sparkle(ctx, lerp(sx, tx, qq), lerp(sy, ty, qq) - Math.sin(qq * Math.PI) * r * 0.35, r * 0.05 * (1 - n / 6), n); }
+      drawGoldTooth(ctx, px, py + r * 0.08, r * 0.2, (1 - q) * 2.4);
+    }
+    if (FIN.fly < 0) { ctx.save(); ctx.translate(cx + r * 0.66, cy + r * 0.86); ctx.scale(r / 150, r / 150); drawToothBox(ctx, 0, 0, 1); ctx.restore(); }
+    if (smile) {
+      const tw = G.anim * 5;
+      sparkle(ctx, tx + r * 0.03, ty - r * 0.05, r * (0.07 + 0.03 * Math.sin(tw)), tw * 0.3);
+      sparkle(ctx, tx - r * 0.12, ty + r * 0.02, r * (0.045 + 0.02 * Math.sin(tw + 2)), -tw * 0.2);
+    }
+  }
+  if (FIN.flash > 0) { ctx.fillStyle = 'rgba(255,252,236,' + (FIN.flash * 0.85).toFixed(3) + ')'; ctx.fillRect(cx - r, cy - r, r * 2, r * 2); }
+  ctx.restore();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.lineWidth = Math.max(4, r * 0.05); ctx.strokeStyle = '#f3c24f'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, r + ctx.lineWidth / 2, 0, TAU); ctx.lineWidth = Math.max(2, r * 0.015); ctx.strokeStyle = INK; ctx.stroke();
+}
+// наезд камеры: перерисовываем середину кадра крупнее
+const ZC = { c: null };
+function finZoom() {
+  const z = FIN.zoom; if (!(z > 1.002)) return;
+  const c = ZC.c || (ZC.c = document.createElement('canvas'));
+  if (c.width !== cv.width || c.height !== cv.height) { c.width = cv.width; c.height = cv.height; }
+  const zg = c.getContext('2d'); zg.setTransform(1, 0, 0, 1, 0, 0); zg.drawImage(cv, 0, 0);
+  const sw = cv.width / z, sh = cv.height / z;
+  const sx = clamp(FIN.fx - sw / 2, 0, cv.width - sw), sy = clamp(FIN.fy - sh / 2, 0, cv.height - sh);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(c, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+}
+
+// ---------- 2. свадьба у сцены «ЖОРУН» ----------
+// на телефоне стоя под дорогой много пустого места: опускаем мир, небо с фейерверком больше
+function finLift() { return PORTRAIT ? clamp((H - GY) / S - 230, 0, 180) : 0; }
+const gyNow = () => GY - G.camY * S;
+function wedStart() {
+  G.state = 'wedding';
+  Object.assign(WED, { t: 0, songT: WED_OFF, beat: -1, frame: 0, kiss: 0, boarded: false, title: 0, car: { x: -1e9, st: 'off', v: 0, wt: 0, ph: 0 } });
+  FIN.t = 0; FIN.zoom = 1; FIN.inset = 0; FIN.white = 1; FIN.black = 0;
+  skyGo('wedding', true);
+  G.obs = []; G.ostrich = null; parts.length = 0; FW.length = 0; G.T = 0; G.hint = null;
+  // камера стоит: болото у правого края, свадьба на берегу
+  pl.x = G.swampX - VW + 70 + PX; pl.y = 0; pl.vy = 0; pl.onGround = true; pl.ride = 0;
+  Object.assign(M, { mode: 'stand', turn: true, face: 'smile_full', fire: 0, steamT: 0, carry: null, throwT: 0, sc: 1, y: 0, dance: true, kiss: 0 });
+  for (const L of LAYERS) L.cache.clear();
+  G.camY = -finLift();
+  WED.music = finPlay('wed', WED_OFF);
+}
+function wedUpdate(dt) {
+  const ct = finClock('wed');
+  WED.songT = ct != null ? ct : WED.songT + dt;
+  const t = WED.t = WED.songT - WED_OFF;
+  pl.ph += dt * 6;
+  const b = Math.floor((WED.songT - WED_SONG.ph) / WED_SONG.g);
+  if (b !== WED.beat) { WED.beat = b; wedBeat(b, t); }
+  WED.kiss = t > WED_KISS[0] && t < WED_KISS[1] ? Math.min(1, (t - WED_KISS[0]) / 0.5) * Math.min(1, (WED_KISS[1] - t) / 0.5) : 0;
+  M.kiss = WED.kiss;
+  if (WED.kiss > 0.9 && Math.random() < dt * 9) hearts(pl.x - PX + wedPos().cx, 160, 1);
+  // «Волга»: въезжает слева, ждёт, пока молодые запрыгнут, и уезжает вправо
+  const C = WED.car, P = wedPos();
+  if (t >= WED_CAR && C.st === 'off') { C.st = 'in'; C.x = -VOL.L - 60; SFX.honk(); SFX.honk2(); }
+  if (C.st === 'in') {
+    // встаёт так, что заднее сиденье — ровно за Мандалупой
+    const target = P.cx + 36 - VOL.L * SEAT_M;
+    C.x += Math.max(40, (target - C.x) * 1.7) * dt;
+    if (C.x >= target - 3) { C.x = target; C.st = 'wait'; C.wt = 0; }
+  } else if (C.st === 'wait') {
+    const w0 = C.wt; C.wt += dt;
+    if (w0 < HOP.m[0] && C.wt >= HOP.m[0]) SFX.jump();
+    if (w0 < HOP.z[1] && C.wt >= HOP.z[1]) SFX.jump();
+    if (C.wt > HOP.z[2] && !WED.boarded) { WED.boarded = true; SFX.mount(); hearts(pl.x - PX + C.x + VOL.L * 0.4, 150, 14); dust(pl.x - PX + C.x + VOL.L * 0.4, 0, 10, 0, true); }
+    if (C.wt > HOP.z[2] + 0.45) { C.st = 'out'; C.v = 60; SFX.honk(); }
+  } else if (C.st === 'out') { C.v = Math.min(560, C.v + 300 * dt); C.x += C.v * dt; }
+  if (C.st === 'in' || C.st === 'out') C.ph += dt * Math.max(4, (C.st === 'out' ? C.v : 160) / 24);
+  fwUpdate(dt);
+  FIN.white = Math.max(0, FIN.white - dt / 0.7);
+  if (t >= WED_LEN + 0.2) { FIN.black = Math.min(1, FIN.black + dt / 1.2); if (FIN.black >= 1) credStart(); }
+}
+function wedBeat(b, t) {
+  WED.frame = b & 1;
+  if (t < 0.6) return;
+  const end = t > WED_LEN - 7;
+  if ((b & 1) === 0 && (t < WED_KISS[0] || t > WED_KISS[1])) fwLaunch(end ? 3 : 1);
+  if (WED.kiss > 0.5 && (b & 3) === 0) fwLaunch(1);
+}
+// где кто стоит (в единицах мира от левого края экрана)
+function wedPos() {
+  const cx = VW * 0.5, sw = Math.min(VW * 0.86, 500);
+  return { cx, sw, stageX: cx, tableX: cx - Math.min(170, VW * 0.3), left: Math.max(70, cx - VW * 0.42), right: Math.min(VW - 60, cx + VW * 0.38) };
+}
+
+// ---------- фейерверк ----------
+const FW = [];
+const FW_COLS = ['#ffd86b', '#ff6fb1', '#8fd3ff', '#b7ff8a', '#ffb366', '#f6f1ff'];
+function fwLaunch(n) {
+  for (let q = 0; q < n; q++) {
+    FW.push({ k: 'r', x: rnd(VW * 0.08, VW * 0.92), y: 10, vx: rnd(-30, 30), vy: rnd(560, 760), t: 0, life: rnd(0.75, 1.05), col: FW_COLS[(Math.random() * FW_COLS.length) | 0] });
+  }
+  SFX.whizz();
+}
+function fwUpdate(dt) {
+  for (let q = FW.length - 1; q >= 0; q--) {
+    const p = FW[q]; p.t += dt;
+    if (p.k === 'r') {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy -= 260 * dt;
+      if (p.t >= p.life) {
+        FW.splice(q, 1);
+        FW.push({ k: 'b', x: p.x, y: p.y, t: 0, life: 0.28, col: p.col });
+        const n = 34 + ((Math.random() * 16) | 0), sp = rnd(190, 280), two = Math.random() < 0.4 ? FW_COLS[(Math.random() * FW_COLS.length) | 0] : p.col;
+        for (let k = 0; k < n; k++) { const a = k * TAU / n + rnd(-0.05, 0.05), v = sp * rnd(0.82, 1.05); FW.push({ k: 's', x: p.x, y: p.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rnd(1.0, 1.5), col: k & 1 ? two : p.col }); }
+        SFX.pop();
+      }
+    } else if (p.k === 'b') { if (p.t >= p.life) FW.splice(q, 1); }
+    else {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - 1.4 * dt; p.vy = p.vy * (1 - 1.4 * dt) - 110 * dt;
+      if (p.t >= p.life) FW.splice(q, 1);
+    }
+  }
+}
+// рисуется поверх ночного тона, светом
+function fwDraw() {
+  if (!FW.length) return;
+  ctx.setTransform(K, 0, 0, K, 0, GY * DPR);
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of FW) {
+    if (p.k === 'r') { ctx.fillStyle = 'rgba(255,230,170,.95)'; E(ctx, p.x, -p.y, 3.4, 3.4); ctx.fill(); ctx.fillStyle = 'rgba(255,200,120,.4)'; E(ctx, p.x, -p.y + 11, 2.4, 10); ctx.fill(); continue; }
+    const a = clamp(1 - p.t / p.life, 0, 1);
+    if (p.k === 'b') { const r = 16 + (1 - a) * 34, gr = ctx.createRadialGradient(p.x, -p.y, 0, p.x, -p.y, r); gr.addColorStop(0, 'rgba(255,248,225,' + (a * 0.7).toFixed(3) + ')'); gr.addColorStop(1, 'rgba(255,248,225,0)'); ctx.fillStyle = gr; E(ctx, p.x, -p.y, r, r); ctx.fill(); continue; }
+    ctx.globalAlpha = a; ctx.fillStyle = p.col;
+    E(ctx, p.x, -p.y, 3.8, 3.8); ctx.fill();
+    ctx.globalAlpha = a * 0.32; E(ctx, p.x, -p.y, 11, 11); ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+// ---------- танцы: позы Жоруна и Мандалупы на свадьбе ----------
+function wedBeatPh() { return ((WED.songT - WED_SONG.ph) / WED_SONG.g) * Math.PI; }     // полупериод — одна доля
+function drawWeddingScene(camX, shx, shy) {
+  ctx.setTransform(K, 0, 0, K, shx * DPR, (GY + shy) * DPR);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  const P = wedPos(), bp = wedBeatPh(), hop = (k) => Math.abs(Math.sin(bp + k)) * 10;
+  // сцена с группой
+  wedStage(P, bp);
+  // гости сзади: страус справа, бабушка слева, буйвол с полицейским у болота
+  ctx.save(); ctx.translate(P.right + 20, -16); ctx.scale(0.78, 0.78); drawOstrichS(ctx, 0, -hop(0.4) * 0.6, bp * 0.4, 0); ctx.restore();
+  if (SP.babushka_full) { ctx.save(); ctx.translate(P.left + 40, -14 - hop(1) * 0.4); spr(ctx, 'babushka_full', 0, 0, 62, 0.5, 1); ctx.restore(); }
+  ctx.save(); ctx.translate(P.right - 70, -10); ctx.scale(0.62, 0.62); drawBuff(ctx, 0, bp * 0.35, false, false); ctx.restore();
+  // свадебный стол
+  wedTable(P.tableX, 0);
+  // ванна с дедом — слева, пропеллер крутится
+  ctx.save(); ctx.translate(P.left - 10, 0); ctx.scale(0.8, 0.8); drawTubBackS(ctx, 0, bp * 2, false, true); if (SP.ded) drawDedS(ctx, -43, bp); drawTubFrontS(ctx, 0, bp * 2); ctx.restore();
+  // индюки пляшут справа
+  for (let q = 0; q < 3; q++) { const x = P.right - 30 + q * 34 - (q === 1 ? 10 : 0); shadow(x, hop(q), 22); ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1); drawTurkeyS(ctx, 0, -hop(q * 1.3), bp * 2 + q, 0.85); ctx.restore(); }
+  // собака лежит у ног
+  ctx.save(); ctx.translate(P.cx + Math.min(150, VW * 0.26), 6); ctx.scale(0.8, 0.8); drawDogS(ctx, 0, bp * 2); ctx.restore();
+  // «Волга» — позади молодых; кто уже сел, того рисует машина
+  const C = WED.car, H = wedHop();
+  if (C && C.st !== 'off') { shadow(C.x + VOL.L * 0.5, 0, 150); wedCar(C.x, C.ph, WED.boarded ? 'both' : H.m >= 1 ? 'm' : 'none'); }
+  wedCouple(P, bp, H);
+  drawParts(camX, false);
+}
+// посадка: секунды ожидания машины. Мандалупа: прыжок [начало, конец]; Жорун: [бег, прыжок, приземление]
+const HOP = { m: [0.15, 0.6], z: [0.1, 0.5, 0.92] }, SEAT_M = 0.3, SEAT_Z = 0.49;
+function wedHop() {
+  const C = WED.car, w = C && C.st === 'wait' ? C.wt : C && C.st === 'out' ? 9 : -1, f = (a, b) => w < a ? 0 : Math.min(1, (w - a) / (b - a));
+  return { w, m: f(HOP.m[0], HOP.m[1]), run: f(HOP.z[0], HOP.z[1]), z: f(HOP.z[1], HOP.z[2]) };
+}
+// на спуске в машину всё ниже верха дверей прячет борт
+function carClip(C) { ctx.beginPath(); ctx.rect(C.x - 40, -460, VOL.L + 80, 460 + VOL.belt + Math.sin(C.ph * 0.9) * 1.2); ctx.clip(); }
+function wedCouple(P, bp, H) {
+  const k = WED.kiss, zx = P.cx - 34 + k * 12, mx = P.cx + 36 - k * 12, C = WED.car;
+  if (WED.boarded) return;
+  // Мандалупа: прыжок вверх на заднее сиденье, в конце чуть меньше — она уже в машине
+  if (H.m < 1) {
+    const q = H.m, y = lerp(0, -72, q) - Math.sin(q * Math.PI) * 85, sc = lerp(1, 0.92, q);
+    if (q <= 0) shadow(mx, 0, 28);
+    ctx.save(); if (q >= 0.5) carClip(C);
+    ctx.translate(mx, q > 0 ? y : Math.abs(Math.sin(bp)) * -3); ctx.rotate(q > 0 ? -0.08 * Math.sin(q * Math.PI) : Math.sin(bp) * 0.05 - k * 0.12);
+    drawBride2S(ctx, 0, 0, G.anim, sc);
+    ctx.restore();
+    if (q <= 0 && Math.sin(bp * 0.5) > 0.92) sparkle(ctx, mx - 16, -136, 7, G.anim * 3);   // новый золотой зуб блестит
+  }
+  // Жорун: обегает к водительской двери и прыгает за руль
+  if (H.z < 1) {
+    const sx = C ? C.x + VOL.L * SEAT_Z : zx, rx = sx - 14;
+    if (H.run <= 0) { shadow(zx, 0, 30); drawZhorunS(ctx, zx, 0, k > 0.4 ? 'kiss' : 'dance', bp * 2, G.anim, 'win', 1); }
+    else if (H.z <= 0) { const x = lerp(zx, rx, H.run); shadow(x, 0, 30); drawZhorunS(ctx, x, 0, 'run', H.w * 19, G.anim, 'run', 1); }
+    else {
+      const q = H.z, x = lerp(rx, sx, q), y = lerp(0, -26, q) - Math.sin(q * Math.PI) * 100;
+      ctx.save(); if (q >= 0.5) carClip(C);
+      drawZhorunS(ctx, x, y, 'jump', 0, G.anim, 'win', 1);
+      ctx.restore();
+    }
+  }
+}
+// машина на свадьбе и в титрах: пустая «Волга», за рулём Жорун, сзади Мандалупа; банки, бант, шарики
+function wedCar(x0, ph, seated) {
+  const L = VOL.L, X = (f) => x0 + f * L, bnc = Math.sin(ph * 0.9) * 1.2;
+  // банки на верёвках волочатся за машиной
+  if (SP.cans) {
+    const w = 84, h = w * SP.cans.height / SP.cans.width, kx = X(0) - 16, ky = -36 + Math.abs(Math.sin(ph * 1.7)) * -3;
+    ctx.strokeStyle = 'rgba(42,21,13,.75)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(X(0.01), -46 + bnc); ctx.lineTo(kx, ky); ctx.stroke();
+    ctx.save(); ctx.translate(kx + w * 0.165, ky - h * 0.56); ctx.scale(-1, 1); ctx.rotate(Math.sin(ph * 1.7) * 0.03);
+    ctx.drawImage(SP.cans, 0, 0, w, h); ctx.restore();
+  } else for (let q = 0; q < 4; q++) {
+    const bx = X(-0.08) - q * 22, by = -6 - Math.abs(Math.sin(ph * 1.7 + q)) * 8;
+    ctx.strokeStyle = 'rgba(42,21,13,.6)'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(X(0.0), -38); ctx.lineTo(bx + 6, by - 10); ctx.stroke();
+    RR(ctx, bx, by - 14, 12, 15, 2); fs(ctx, q & 1 ? '#c7cdd6' : '#e2e6ec', 1.6);
+  }
+  // шарики привязаны к крышке багажника
+  const bl = X(0.07);
+  if (SP.balloons) { const h = 112, w = h * SP.balloons.width / SP.balloons.height; ctx.save(); ctx.translate(bl, -104 + bnc); ctx.rotate(-0.12 + Math.sin(G.anim * 1.6) * 0.04); ctx.drawImage(SP.balloons, -w * 0.47, -h, w, h); ctx.restore(); }
+  else for (let q = 0; q < 3; q++) { const by = -170 - q * 14 + Math.sin(G.anim * 2 + q) * 3, bx = bl - 12 + q * 13; ctx.strokeStyle = 'rgba(42,21,13,.6)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(bl, -100); ctx.lineTo(bx, by + 12); ctx.stroke(); E(ctx, bx, by, 9, 11); fs(ctx, ['#ff6fb1', '#fff6f0', '#f3c24f'][q], 1.8); }
+  volBody(ctx, x0, L, ph, false);
+  // люди — поверх кузова, но только выше дверей: ниже пояса их прячет борт
+  // who: 'both' (по умолчанию), 'm' — пока села только Мандалупа, 'none' — машина пустая
+  if (seated !== 'none' && seated !== false) {
+  ctx.save(); ctx.beginPath(); ctx.rect(x0 - 40, -400, L + 80, 400 + VOL.belt + bnc); ctx.clip();
+  if (seated !== 'm') drawZhorunS(ctx, X(SEAT_Z), -80 + bnc, 'drive', 0, G.anim, 'win', 1);
+  ctx.save(); ctx.translate(X(SEAT_M), -72 + bnc); ctx.scale(-1, 1);
+  const sv = { mode: M.mode, turn: M.turn, dance: M.dance, kiss: M.kiss }; Object.assign(M, { mode: 'stand', turn: false, dance: true, kiss: 0 });
+  drawBride2S(ctx, 0, 0, G.anim, 0.92); Object.assign(M, sv);
+  ctx.restore(); ctx.restore();
+  }
+  // бант на капоте
+  if (SP.bow) { const w = 50, h = w * SP.bow.height / SP.bow.width; ctx.drawImage(SP.bow, X(0.85) - w / 2, -110 - h * 0.62 + bnc, w, h); }
+  else { E(ctx, X(0.83), -92 + bnc, 10, 7); fs(ctx, '#fffaf2', 1.8); E(ctx, X(0.87), -92 + bnc, 10, 7); fs(ctx, '#fffaf2', 1.8); E(ctx, X(0.85), -92 + bnc, 4, 4); fs(ctx, '#ffd9e8', 1.4); }
+}
+// сцена «ЖОРУН» и группа: кадры A/B от Codex меняются на каждую долю. Барабанщик — в глубине по центру
+// [кто, доля ширины сцены, в глубине]; AX — точка, где стоят ноги, в долях кадра
+const BAND = [['drummer', 0.5, 1], ['guitarist', 0.26, 0], ['accordionist', 0.65, 0], ['trumpeter', 0.81, 0]];
+const BAND_AX = { guitarist: [0.521, 0.983], trumpeter: [0.573, 0.983], drummer: [0.577, 0.983], accordionist: [0.386, 0.983] };
+function wedStage(P, bp) {
+  const w = P.sw, h = SP.stage ? w * SP.stage.height / SP.stage.width : w * 0.66, x0 = P.stageX - w / 2, y0 = -18 - h;
+  // свет со сцены — до картинки, чтобы лучи шли из-за кулис
+  if (SP.stage) ctx.drawImage(SP.stage, x0, y0, w, h);
+  else { RR(ctx, x0, y0 + h * 0.2, w, h * 0.8, 10); fs(ctx, '#7a2a35', 3); RR(ctx, x0 + w * 0.1, y0, w * 0.8, h * 0.18, 8); fs(ctx, '#b3283c', 3); }
+  const floor = y0 + h * 0.8, mh = h * 0.5;
+  for (let q = 0; q < BAND.length; q++) {
+    const [name, f, back] = BAND[q], x = x0 + w * f, fr = WED.frame ^ (q & 1);
+    const img = SP[name + '_stage_' + (fr ? 'b' : 'a')];
+    if (img) {
+      const hh = mh * (back ? 0.9 : 1), ww = hh * img.width / img.height, a = BAND_AX[name], fy = floor - (back ? h * 0.035 : 0);
+      ctx.drawImage(img, x - a[0] * ww, fy - a[1] * hh, ww, hh); continue;
+    }
+    bandStub(name, x, floor, mh, bp, fr);
+  }
+  WED.stageBox = [x0, y0, w, h, floor];
+}
+function bandStub(name, x, y, h, bp, fr) {
+  const s = h / 120, sway = Math.sin(bp + x) * 0.06;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.rotate(sway);
+  const sil = '#2a1022';
+  if (name === 'drummer') {
+    E(ctx, 0, -22, 24, 22); fs(ctx, sil, 0);                              // бочка
+    RR(ctx, -10, -82, 20, 44, 8); fs(ctx, sil, 0); E(ctx, 0, -92, 11, 12); fs(ctx, sil, 0);
+    ctx.fillStyle = '#e8322c'; ctx.beginPath(); ctx.moveTo(-4, -102); ctx.lineTo(0, -122); ctx.lineTo(4, -102); ctx.fill();
+    ctx.lineWidth = 4; ctx.strokeStyle = sil; ctx.beginPath(); ctx.moveTo(-8, -70); ctx.lineTo(-28, fr ? -104 : -52); ctx.moveTo(8, -70); ctx.lineTo(28, fr ? -104 : -52); ctx.stroke();
+    E(ctx, 30, -60, 16, 3); fs(ctx, '#d9b54a', 0);
+  } else {
+    RR(ctx, -8, -46, 7, 46, 3); fs(ctx, sil, 0); RR(ctx, 2, -46, 7, 46, 3); fs(ctx, sil, 0);
+    RR(ctx, -13, -92, 26, 50, 10); fs(ctx, sil, 0); E(ctx, 0, -104, 12, 13); fs(ctx, sil, 0);
+    if (name === 'trumpeter') { RR(ctx, -14, -114, 7, 34, 3); fs(ctx, '#eef0f2', 0); RR(ctx, 7, -114, 7, 34, 3); fs(ctx, '#eef0f2', 0); ctx.lineWidth = 5; ctx.strokeStyle = '#e2b13c'; ctx.beginPath(); ctx.moveTo(6, -100); ctx.lineTo(34, fr ? -136 : -112); ctx.stroke(); }
+    if (name === 'guitarist') { E(ctx, -3, -110, 15, 13); fs(ctx, '#f0cf68', 0); ctx.save(); ctx.translate(4, -62); ctx.rotate(fr ? -0.7 : -0.45); RR(ctx, -16, -8, 30, 18, 8); fs(ctx, '#b8572a', 0); RR(ctx, 12, -3, 34, 5, 2); fs(ctx, '#3a2414', 0); ctx.restore(); }
+    if (name === 'accordionist') { E(ctx, 0, -104, 10, 11); fs(ctx, '#f6f3ec', 0); RR(ctx, fr ? -26 : -18, -78, fr ? 52 : 36, 28, 4); fs(ctx, '#f6f3ec', 0); }
+  }
+  ctx.restore();
+}
+function wedTable(x, y) {
+  if (SP.wedding_table) {
+    const w = 230, h = w * SP.wedding_table.height / SP.wedding_table.width; ctx.drawImage(SP.wedding_table, x - w / 2, y - h, w, h);
+    // венок-сердце из роз на скатерти — стол молодых
+    if (SP.heart_wreath) { const hw = 46, hh = hw * SP.heart_wreath.height / SP.heart_wreath.width; ctx.drawImage(SP.heart_wreath, x - hw / 2, y - h * 0.24 - hh / 2, hw, hh); }
+    return;
+  }
+  RR(ctx, x - 110, y - 56, 220, 56, 6); fs(ctx, '#fbf5ea', 2.6);           // скатерть до земли
+  for (let q = 0; q < 7; q++) { E(ctx, x - 96 + q * 32, y - 4, 14, 6); ctx.fillStyle = 'rgba(200,190,170,.35)'; ctx.fill(); }
+  RR(ctx, x - 14, y - 108, 28, 18, 4); fs(ctx, '#fffaf4', 2); RR(ctx, x - 22, y - 90, 44, 18, 4); fs(ctx, '#fffaf4', 2); RR(ctx, x - 30, y - 72, 60, 16, 4); fs(ctx, '#fffaf4', 2);   // торт
+  for (const [dx, c] of [[-4, '#ff8fb3'], [6, '#ff6fa0'], [-12, '#ff9fbf']]) { E(ctx, x + dx, y - 110, 4, 4); fs(ctx, c, 1.2); }
+  E(ctx, x - 70, y - 64, 16, 10); fs(ctx, '#3f8a3a', 2); E(ctx, x - 70, y - 66, 12, 6); fs(ctx, '#e8463c', 0);   // арбуз
+  E(ctx, x + 66, y - 64, 18, 9); fs(ctx, '#c9894a', 2);                     // каравай
+  for (const dx of [-40, 40, 92]) { RR(ctx, x + dx - 4, y - 82, 8, 24, 3); fs(ctx, 'rgba(190,230,210,.85)', 1.6); }
+}
+// свет поверх ночного тона: гирлянды, лучи со сцены, фейерверк
+function wedLights(shx, shy) {
+  ctx.setTransform(K, 0, 0, K, shx * DPR, (GY + shy) * DPR);
+  const P = wedPos(), bp = wedBeatPh(), B = WED.stageBox;
+  ctx.globalCompositeOperation = 'lighter';
+  if (B) {
+    const [x0, y0, w, h] = B;
+    for (let q = 0; q < 3; q++) {
+      const sx = x0 + w * (0.25 + q * 0.25), sy = y0 + h * 0.12, a = Math.sin(bp * 0.5 + q * 2.1) * 0.5;
+      const g = ctx.createLinearGradient(sx, sy, sx, sy + h * 0.9); g.addColorStop(0, 'rgba(255,236,170,.32)'); g.addColorStop(1, 'rgba(255,236,170,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(sx - 6, sy); ctx.lineTo(sx + 6, sy); ctx.lineTo(sx + 70 + a * 90, sy + h * 0.9); ctx.lineTo(sx - 70 + a * 90, sy + h * 0.9); ctx.closePath(); ctx.fill();
+    }
+  }
+  // гирлянды от сцены к краям экрана
+  const strings = B ? [[-40, B[1] + B[3] * 0.08, B[0] + 10, B[1] + B[3] * 0.12], [B[0] + B[2] - 10, B[1] + B[3] * 0.12, VW + 40, B[1] + B[3] * 0.08], [B[0] + 20, B[1] - 6, B[0] + B[2] - 20, B[1] - 6]] : [];
+  for (const [xa, ya, xb, yb] of strings) {
+    const n = Math.max(6, Math.round((xb - xa) / 26));
+    for (let k = 0; k <= n; k++) {
+      const t = k / n, x = lerp(xa, xb, t), y = lerp(ya, yb, t) + Math.sin(t * Math.PI) * 34;
+      const on = 0.6 + 0.4 * Math.sin(G.anim * 4 + k * 1.7), col = FW_COLS[k % 5];
+      ctx.globalAlpha = 0.28 * on; ctx.fillStyle = col; E(ctx, x, y, 11, 11); ctx.fill();
+      ctx.globalAlpha = 0.95; E(ctx, x, y, 3.4, 4.2); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  fwDraw();
+}
+
+// ---------- 3. титры: молодые едут ночью, новая песня ----------
+const CRED_LINES = [
+  ['k', 'Жорун · игра'], ['h', 'Остановысь Мразня'], ['g'],
+  ['k', 'В главных ролях'], ['n', 'Жорун Поколено'], ['n', 'Мандалупа Вафлянова'], ['g'],
+  ['r', 'Индюки — в роли самих себя'], ['r', 'Страус'], ['r', 'Буйвол'], ['r', 'Полицейский Ялдонии'], ['r', 'Дед на ванне'], ['r', 'Крокодил с рынка'],
+  ['r', 'Бабушки, гуси, куры, свиньи и собака'], ['g'],
+  ['k', 'Группа «Жорун»'], ['r', 'Шмыздя Пыздя — гитара'], ['r', 'Лохман Дудко — труба'], ['r', 'Дроцык Цвиркун — аккордеон'], ['r', 'Лыгарь Взюско — барабаны'], ['g'],
+  ['k', 'Песни марафона'], ...MARATHON.map((s) => ['s', s.t]), ['g'],
+  ['k', 'Новый хит'], ['h', '«Задроничка моя»'], ['r', 'впервые — только в этой игре'], ['g'],
+  ['k', 'Ялдония'], ['h', 'Ты добежал!'],
+];
+function credStart() {
+  finStop(0.5);
+  if (!SP.diploma_frame) loadImg('diploma_frame');
+  G.state = 'credits'; FIN.t = 0; FIN.zoom = 1; FIN.inset = 0; FIN.white = 0; FIN.black = 1;
+  Object.assign(CRED, { t: 0, songT: 0 });
+  skyGo('night', true);
+  G.obs = []; G.ostrich = null; parts.length = 0; FW.length = 0; G.hint = null;
+  Object.assign(M, { mode: 'stand', turn: false, face: 'smile_full', dance: true, kiss: 0 });
+  pl.ph = 0;
+  for (const L of LAYERS) L.cache.clear();
+  // дорога: ставим дальше от болота, едем влево от него — назад по деревне
+  pl.x = G.swampX - VW * 2 - 3000; G.swampX = 1e12; G.camY = -finLift();
+  CRED.music = finPlay('cred', 0);
+  if (!CRED.music) finLoad('cred').then(() => { if (G.state === 'credits' && !FINA.cur) CRED.music = finPlay('cred', CRED.t); });
+}
+function credUpdate(dt) {
+  const ct = finClock('cred');
+  CRED.songT = ct != null ? ct : CRED.songT + dt;
+  CRED.t += dt;
+  pl.x += 300 * dt; pl.ph += dt * 12;
+  FIN.black = Math.max(0, FIN.black - dt / 1.4);
+  if (!FIN.dip && CRED.total && credScroll() > CRED.total + H * 0.18) openDiploma();
+}
+const CRED_T0 = 6.5, CRED_V = 46;                              // сколько держится заставка премьеры; скорость титров, точек в секунду
+function credScroll() { return Math.max(0, CRED.t - CRED_T0) * CRED_V; }
+function drawCreditsScene(camX, shx, shy) {
+  ctx.setTransform(K, 0, 0, K, shx * DPR, (GY + shy) * DPR);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  const x0 = PX - VOL.L * 0.42;
+  shadow(x0 + VOL.L * 0.5, 0, 150);
+  wedCar(x0, pl.ph);
+  drawParts(camX, false);
+}
+// текст титров — поверх всего, в пикселях экрана
+function drawCreditsText() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, 'rgba(10,6,20,.78)'); g.addColorStop(0.62, 'rgba(10,6,20,.55)'); g.addColorStop(0.8, 'rgba(10,6,20,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const t = CRED.t, cx = W / 2, top = Math.min(H * 0.66, gyNow() - 200 * S);
+  const fz = (n) => Math.round(Math.min(n, W * n / 380));
+  // заставка премьеры
+  if (t < CRED_T0 + 0.6) {
+    const a = clamp((t - 0.5) / 0.6, 0, 1) * clamp((CRED_T0 + 0.6 - t) / 0.6, 0, 1), y = top * 0.46;
+    ctx.globalAlpha = a;
+    hudText('ПРЕМЬЕРА', cx, y - 64, '800 ' + fz(15) + 'px ' + F_UI, '#f3c24f', 'center', 4);
+    hudText('Жорун', cx, y - 26, '600 ' + fz(20) + 'px ' + F_UI, '#fff3dc', 'center', 4);
+    hudText('«Задроничка моя»', cx, y + 22, '400 ' + fz(40) + 'px ' + F_DISP, '#ffd86b', 'center', 6);
+    hudText('новый хит — впервые только здесь', cx, y + 66, '600 ' + fz(16) + 'px ' + F_UI, 'rgba(255,243,220,.9)', 'center', 4);
+    ctx.globalAlpha = 1;
+  }
+  // список
+  if (t > CRED_T0 - 0.2) {
+    const off = credScroll();
+    let y = top + 30 - off;
+    const ST = { k: ['800 ' + fz(13) + 'px ' + F_UI, '#f3c24f', 30], h: ['400 ' + fz(32) + 'px ' + F_DISP, '#ffd86b', 44], n: ['400 ' + fz(24) + 'px ' + F_DISP, '#fff3dc', 36],
+      r: ['600 ' + fz(16) + 'px ' + F_UI, 'rgba(255,243,220,.92)', 28], s: ['600 ' + fz(15) + 'px ' + F_UI, 'rgba(255,243,220,.82)', 24], g: [null, null, 26] };
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, top + 40); ctx.clip();
+    for (const [k, txt] of CRED_LINES) {
+      const [font, col, lh] = ST[k];
+      if (font && y > -40 && y < top + 80) {
+        ctx.globalAlpha = clamp((y + 20) / 90, 0, 1) * clamp((top + 40 - y) / 60, 0, 1);
+        hudText(k === 'k' ? txt.toUpperCase() : txt, cx, y, font, col, 'center', k === 'h' ? 6 : 4);
+      }
+      y += lh;
+    }
+    ctx.restore(); ctx.globalAlpha = 1;
+    CRED.total = y + off - (top + 30);
+  }
+}
+
+// ---------- общий вызов из render() ----------
+function finRenderWorld(camX, shx, shy) {
+  if (G.state === 'wedding') { drawWeddingScene(camX, shx, shy); return true; }
+  if (G.state === 'credits') { drawCreditsScene(camX, shx, shy); return true; }
+  return false;
+}
+function finRenderLights(shx, shy) { if (G.state === 'wedding') wedLights(shx, shy); }
+function finRenderOverlay() {
+  if (!FIN.on) return;
+  if (G.state === 'tooth') { finZoom(); drawToothInset(); }
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (G.state === 'wedding') {
+    const t = WED.t;
+    if (t > 0.5 && t < 4.2) { ctx.globalAlpha = clamp((t - 0.5) / 0.4, 0, 1) * clamp((4.2 - t) / 0.5, 0, 1); hudText('Свадьба!', W / 2, Math.max(H * 0.13, Math.min(H * 0.2, gyNow() - 460 * S)), '400 ' + Math.round(Math.min(64, W * 0.15)) + 'px ' + F_DISP, '#ffd86b', 'center', 8); }
+    if (WED.kiss > 0) { ctx.globalAlpha = WED.kiss; hudText('Горько!', W / 2, Math.max(H * 0.13, Math.min(H * 0.2, gyNow() - 460 * S)), '400 ' + Math.round(Math.min(64, W * 0.15)) + 'px ' + F_DISP, '#ff9fbf', 'center', 8); }
+    ctx.globalAlpha = 1;
+  }
+  if (G.state === 'credits') drawCreditsText();
+  if (FIN.white > 0) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(255,248,232,' + FIN.white.toFixed(3) + ')'; ctx.fillRect(0, 0, cv.width, cv.height); }
+  if (FIN.black > 0) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(8,4,12,' + FIN.black.toFixed(3) + ')'; ctx.fillRect(0, 0, cv.width, cv.height); }
+  if (FIN.test) { ctx.setTransform(DPR, 0, 0, DPR, 0, 0); hudText('ТЕСТОВЫЙ ФИНАЛ', 12, H - 18, '800 12px ' + F_UI, 'rgba(255,243,220,.7)', 'left', 3); }
+}
+function finUpdate(dt) {
+  FIN.t += dt;
+  if (G.state === 'tooth') toothUpdate(dt);
+  else if (G.state === 'wedding') wedUpdate(dt);
+  else if (G.state === 'credits') credUpdate(dt);
+}
+function finReset() {
+  finStop(0.3);
+  FIN.on = false; FIN.dip = false; M.face = ''; M.dance = false; M.kiss = 0; FW.length = 0;
+  skipBtn.hidden = true; $('btn-pause').hidden = false;
+  if (SKIES.wedding === PAL || G.state === 'credits') skyGo(MARATHON[0].sky, true);
+}
+
+// ---------- 4. диплом ----------
+const DIP = { name: '', vkTried: false };
+try { DIP.name = store.get('mraznya.name', '') || ''; } catch (e) { DIP.name = ''; }
+function dipWrap(g, text, maxW) {
+  const words = text.split(' '), out = []; let line = '';
+  for (const w of words) { const tl = line ? line + ' ' + w : w; if (g.measureText(tl).width > maxW && line) { out.push(line); line = w; } else line = tl; }
+  if (line) out.push(line);
+  return out;
+}
+const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+function makeDiploma(tall, cta) {
+  const R = G.mar || { d: Math.round(G.dist), s: MARATHON.length, win: true };
+  const CW = 1080, CH = tall ? 1920 : 1350;
+  const c = document.createElement('canvas'); c.width = CW; c.height = CH;
+  const g = c.getContext('2d');
+  const bg = g.createLinearGradient(0, 0, 0, CH); bg.addColorStop(0, '#5e1733'); bg.addColorStop(1, '#22060f');
+  g.fillStyle = bg; g.fillRect(0, 0, CW, CH);
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  const ink = '#3a1418', red = '#9b1730', cx = CW / 2, fr = SP.diploma_frame;
+  const name = (DIP.name || '').trim();
+  const lines = ['пробежал 19 песен Жоруна подряд,', 'догнал Мандалупу в болоте,', 'вставил ей золотой зуб', 'и погулял на свадьбе!'];
+  const stat = fmtInt(R.d) + ' м · ' + fmtTime(G.time) + ' · ' + G.rides + ' ' + plural(G.rides, ['раз', 'раза', 'раз']) + ' в седле';
+  const d = new Date(), date = d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear() + ' года · Ялдония';
+  let ph, pw, px, py;
+  if (fr) {
+    // рамка от Codex, 2:3: сверху портрет Жоруна, снизу печать с оленем; текст — на пергаменте, от 0,27 до 0,80 высоты
+    ph = Math.min(tall ? (cta ? 1500 : 1640) : 1290, 980 * 1.5); pw = ph / 1.5; px = (CW - pw) / 2; py = tall && cta ? 150 : (CH - ph) / 2;
+    g.drawImage(fr, px, py, pw, ph);
+    const u = ph / 1300, Y = (f) => py + ph * f, tw = pw * 0.66, F = (w, s, fam) => w + ' ' + Math.round(s * u) + 'px ' + fam;
+    cardText(g, 'ДИПЛОМ', cx, Y(0.334), F(400, 116, F_DISP), red, tw);
+    cardText(g, 'марафона Жоруна «Остановысь Мразня»', cx, Y(0.371), F(700, 27, F_UI), ink, tw);
+    cardText(g, 'Настоящим удостоверяется, что', cx, Y(0.424), F(600, 28, F_UI), ink, tw);
+    if (name) cardText(g, name, cx, Y(0.488), F(400, 66, F_DISP), ink, tw);
+    else { g.strokeStyle = 'rgba(58,20,24,.55)'; g.lineWidth = 3 * u; g.beginPath(); g.moveTo(cx - tw * 0.4, Y(0.49)); g.lineTo(cx + tw * 0.4, Y(0.49)); g.stroke(); }
+    lines.forEach((l, i) => cardText(g, l, cx, Y(0.546 + i * 0.036), F(600, 32, F_UI), ink, tw));
+    cardText(g, stat, cx, Y(0.7), F(800, 28, F_UI), red, tw);
+    cardText(g, date, cx, Y(0.732), F(600, 22, F_UI), 'rgba(58,20,24,.8)', tw);
+    // подписи — по бокам от печати
+    const sy = Y(0.786), sx = pw * 0.252, lw = pw * 0.1;
+    g.font = F('italic 400', 27, F_DISP); const sz = 27 * Math.min(1, pw * 0.2 / g.measureText('Мандалупа Вафлянова').width);   // обе подписи одним размером
+    cardText(g, 'Жорун Поколено', cx - sx, sy, F('italic 400', sz, F_DISP), ink, pw * 0.2);
+    cardText(g, 'Мандалупа Вафлянова', cx + sx, sy, F('italic 400', sz, F_DISP), ink, pw * 0.2);
+    g.strokeStyle = 'rgba(58,20,24,.45)'; g.lineWidth = 2 * u; g.beginPath();
+    g.moveTo(cx - sx - lw, sy + 10 * u); g.lineTo(cx - sx + lw, sy + 10 * u); g.moveTo(cx + sx - lw, sy + 10 * u); g.lineTo(cx + sx + lw, sy + 10 * u); g.stroke();
+  } else {
+    // рамка не загрузилась — рисуем лист сами
+    ph = tall ? (cta ? 1500 : 1640) : 1270; pw = Math.min(980, ph * 0.69); px = (CW - pw) / 2; py = tall ? (cta ? 150 : 140) : 40;
+    RR(g, px, py, pw, ph, 26); g.fillStyle = '#f6ead0'; g.fill();
+    const pg = g.createRadialGradient(CW / 2, py + ph / 2, 100, CW / 2, py + ph / 2, ph * 0.7); pg.addColorStop(0, 'rgba(255,255,255,0)'); pg.addColorStop(1, 'rgba(150,100,40,.25)');
+    g.fillStyle = pg; g.fill();
+    RR(g, px + 22, py + 22, pw - 44, ph - 44, 16); g.lineWidth = 10; g.strokeStyle = '#a31d36'; g.stroke();
+    RR(g, px + 42, py + 42, pw - 84, ph - 84, 12); g.lineWidth = 4; g.strokeStyle = '#c99a2e'; g.stroke();
+    for (const [qx, qy] of [[px + 42, py + 42], [px + pw - 42, py + 42], [px + 42, py + ph - 42], [px + pw - 42, py + ph - 42]]) { g.save(); g.translate(qx, qy); g.rotate(Math.PI / 4); g.fillStyle = '#c99a2e'; g.fillRect(-16, -16, 32, 32); g.fillStyle = '#a31d36'; g.fillRect(-8, -8, 16, 16); g.restore(); }
+    // печать с оленем
+    const sx = CW / 2, sy = py + ph - 150;
+    g.fillStyle = '#a31d36'; g.beginPath(); g.moveTo(sx - 26, sy + 30); g.lineTo(sx - 48, sy + 120); g.lineTo(sx - 18, sy + 100); g.lineTo(sx - 4, sy + 126); g.lineTo(sx + 2, sy + 34); g.fill();
+    g.beginPath(); g.moveTo(sx + 26, sy + 30); g.lineTo(sx + 48, sy + 120); g.lineTo(sx + 18, sy + 100); g.lineTo(sx + 4, sy + 126); g.lineTo(sx - 2, sy + 34); g.fill();
+    E(g, sx, sy, 62, 62); g.fillStyle = '#b8172f'; g.fill(); E(g, sx, sy, 50, 50); g.lineWidth = 4; g.strokeStyle = 'rgba(255,220,200,.5)'; g.stroke();
+    g.fillStyle = 'rgba(255,230,210,.85)'; g.beginPath(); g.moveTo(sx - 26, sy + 14); g.lineTo(sx - 8, sy - 6); g.lineTo(sx + 14, sy - 4); g.lineTo(sx + 24, sy - 24); g.lineTo(sx + 30, sy - 8); g.lineTo(sx + 16, sy + 4); g.lineTo(sx + 2, sy + 22); g.lineTo(sx - 14, sy + 20); g.closePath(); g.fill();
+    const tw = pw - 190;
+    let y = py + ph * 0.17;
+    cardText(g, 'ДИПЛОМ', cx, y, '400 150px ' + F_DISP, red, tw);
+    y += 80; cardText(g, 'марафона Жоруна «Остановысь Мразня»', cx, y, '700 34px ' + F_UI, ink, tw);
+    y += 112; cardText(g, 'Настоящим удостоверяется, что', cx, y, '600 36px ' + F_UI, ink, tw);
+    y += 126;
+    if (name) cardText(g, name, cx, y, '400 80px ' + F_DISP, ink, tw);
+    else { g.strokeStyle = 'rgba(58,20,24,.55)'; g.lineWidth = 3; g.beginPath(); g.moveTo(cx - tw * 0.38, y + 6); g.lineTo(cx + tw * 0.38, y + 6); g.stroke(); }
+    y += 116;
+    g.font = '600 42px ' + F_UI;
+    for (const line of lines) for (const l of dipWrap(g, line, tw)) { cardText(g, l, cx, y, '600 42px ' + F_UI, ink, tw); y += 62; }
+    y += 44; cardText(g, stat, cx, y, '800 36px ' + F_UI, red, tw);
+    y += 86; cardText(g, date, cx, y, '600 30px ' + F_UI, 'rgba(58,20,24,.8)', tw);
+    const sy2 = py + ph - 250;
+    cardText(g, 'Жорун Поколено', cx - pw * 0.27, sy2, 'italic 400 40px ' + F_DISP, ink, pw * 0.4);
+    cardText(g, 'Мандалупа Вафлянова', cx + pw * 0.27, sy2, 'italic 400 36px ' + F_DISP, ink, pw * 0.4);
+    g.strokeStyle = 'rgba(58,20,24,.45)'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(cx - pw * 0.42, sy2 + 14); g.lineTo(cx - pw * 0.12, sy2 + 14); g.moveTo(cx + pw * 0.12, sy2 + 14); g.lineTo(cx + pw * 0.42, sy2 + 14); g.stroke();
+  }
+  if (FIN.test) { g.save(); g.translate(cx, py + ph * 0.5); g.rotate(-0.35); cardText(g, 'ТЕСТ', 0, 60, '800 220px ' + F_UI, 'rgba(155,23,48,.18)', 900); g.restore(); }
+  if (cta) {
+    cardText(g, 'Играть — по ссылке в профиле', CW / 2, CH - 168, '600 40px ' + F_UI, 'rgba(255,243,220,.86)', 960);
+    cardText(g, IG_HANDLE, CW / 2, CH - 96, '800 60px ' + F_UI, '#ffd86b', 960, 1);
+  }
+  return c;
+}
+async function dipVkName() {
+  if (!VK.on || DIP.vkTried || DIP.name) return;
+  DIP.vkTried = true;
+  try { const u = await VK.b.send('VKWebAppGetUserInfo', {}); if (u && u.first_name) { DIP.name = (u.first_name + ' ' + (u.last_name || '')).trim(); } } catch (e) { /* без имени */ }
+}
+// диплом показываем в окне картинки (там же, где «Поделиться рекордом»)
+let dipTimer = 0;
+async function openDiploma() {
+  if (FIN.dip) return;
+  FIN.dip = true; skipBtn.hidden = true;
+  if (!SP.diploma_frame) await Promise.race([loadImg('diploma_frame'), new Promise((r) => setTimeout(r, 2500))]);
+  await dipVkName();
+  dipShow();
+}
+function dipRender() {
+  const tall = !VK.on;
+  const blob = dataBlob(makeDiploma(tall, tall).toDataURL('image/jpeg', 0.92), 'image/jpeg');
+  if (cardURL) URL.revokeObjectURL(cardURL);
+  cardURL = URL.createObjectURL(blob);
+  const img = $('card-img'); img.width = 1080; img.height = tall ? 1920 : 1350; img.src = cardURL;
+  const nm = 'zhorun-diplom.jpg';
+  $('card-dl').href = cardURL; $('card-dl').setAttribute('download', nm);
+  DIP.blob = blob; DIP.file = nm;
+}
+async function dipShow() {
+  cardScr.classList.toggle('tall', !VK.on);
+  $('card-title').textContent = 'Диплом';
+  $('dip-name-row').hidden = false; $('dip-name').value = DIP.name;
+  dipRender();
+  if (VK.on) {
+    const [st, wa] = await Promise.all(['VKWebAppShowStoryBox', 'VKWebAppShowWallPostBox'].map(vkCan));
+    $('card-story').hidden = !st; $('card-wall').hidden = !wa; $('card-invite').hidden = true;
+    $('card-wall').className = 'btn ' + (st ? 'btn-ghost' : 'btn-main');
+    $('card-vk').hidden = !(st || wa);
+    $('card-dl').className = 'btn btn-ghost'; $('card-dl').hidden = VK.mobile;
+    $('card-note').textContent = 'Выложи диплом в историю — пусть друзья тоже добегут до свадьбы';
+  } else {
+    $('card-vk').hidden = true;
+    $('card-dl').className = 'btn btn-main'; $('card-dl').hidden = TOUCH && IN_APP;
+    $('card-note').textContent = TOUCH ? 'Сохрани диплом и выложи в сторис. Нажми на картинку и подержи — или сделай скриншот' : 'Скачай диплом и выложи в сторис или пост';
+  }
+  $('card-close').textContent = 'Дальше';
+  scr.result.hidden = true; cardScr.hidden = false;
+}
+$('dip-name').addEventListener('input', () => {
+  DIP.name = $('dip-name').value.slice(0, 40);
+  try { store.set('mraznya.name', DIP.name); } catch (e) { /* ок */ }
+  clearTimeout(dipTimer); dipTimer = setTimeout(dipRender, 250);
+});
+
+// ---------- тестовый финал: ?svadba — сразу к концу последней песни (рекорд и диплом помечены как тест) ----------
+const TEST_FINAL = VKQ.has('svadba');
+function finTestJump() {
+  if (!TEST_FINAL || !MAR) return;
+  FIN.test = true;
+  const i = MARATHON.length - 1; marStopAll(0);
+  SNG.i = i; SNG.passed = i; SNG.S = MARATHON[i].end - 22; marApplySong();
+  MZ.length = 0; MZ.push({ x: -1e12, z: MARATHON[i].zone }); for (const L of LAYERS) L.cache.clear();
+  skyGo(MARATHON[i].sky, true); G.nextArr = beatAfter(SNG.S + 1.5); G.nextType = ''; G.obs = [];
+  marLoad(i).then(() => { if (G.state === 'play' && SNG.i === i && A.ctx) SNG.cur = marPlay(i, A.ctx.currentTime + 0.05, SNG.S + 0.05); });
+  finPrefetch();
+}
+
+if (!VK.on || VKQ.has('zdebug')) window.__lab = (kind, ph, look, sc) => {
+  // отладка: ускоритель с седоком крупно на отдельном холсте
+  const c = document.createElement('canvas'); c.width = 1100; c.height = 700; const g = c.getContext('2d'), s = sc || 2;
+  g.fillStyle = '#a9cde0'; g.fillRect(0, 0, 1100, 700); g.fillStyle = '#cfae74'; g.fillRect(0, 600, 1100, 100);
+  g.save(); g.translate(kind === 'volga' ? 330 : 520, 600); g.scale(s, s); ph = ph || 0;
+  if (kind === 'buff') drawBuff(g, 0, ph, true, look);
+  else if (kind === 'buffRun') drawBuff(g, 0, ph, false, false);
+  else if (kind === 'volga') drawVolga(g, 0, ph, true, false);
+  else if (kind === 'volgaRun') drawVolga(g, 0, ph, false, false);
+  else if (kind === 'tub') { drawTubBackS(g, 0, ph, false, true); if (SP.ded) drawDedS(g, -43, ph); g.save(); g.beginPath(); g.rect(-200, -420, 400, 420 + TUB_CLIP); g.clip(); drawZhorunS(g, 22, TUB_SEAT, 'ride', ph, G.anim, 'ride', 1); g.restore(); drawTubFrontS(g, 0, ph); }
+  else if (kind === 'tubRun') { drawTubBackS(g, 0, ph, false, false); drawTubFrontS(g, 0, ph); }
+  else if (kind === 'os') { const sy = ostrichSeat(ph); drawZhorunS(g, -20, sy + 8, 'ride', ph, G.anim, 'ride', 1, 'far'); drawOstrichS(g, 0, 0, ph, 0); drawZhorunS(g, -20, sy + 8, 'ride', ph, G.anim, 'ride', 1, 'near'); }
+  g.restore(); return c.toDataURL('image/png');
+};
+if (!VK.on || VKQ.has('zdebug')) window.__dip = async (tall, cta, name) => { if (!SP.diploma_frame) await loadImg('diploma_frame'); const sv = DIP.name; DIP.name = name || ''; const u = makeDiploma(!!tall, !!cta).toDataURL('image/jpeg', 0.9); DIP.name = sv; return u; };
+if (!VK.on || VKQ.has('zdebug')) window.__fin = () => ({ on: FIN.on, state: G.state, t: +FIN.t.toFixed(2), music: FINA.cur && FINA.cur.key, bufs: Object.keys(FINA.bufs),
+  wed: +WED.t.toFixed(2), car: WED.car && WED.car.st, cred: +CRED.t.toFixed(2), dip: FIN.dip, face: M.face, camY: Math.round(G.camY) });
 
 /* ================= интерфейс ================= */
 const scr = { title: $('scr-title'), pause: $('scr-pause'), result: $('scr-result') };
@@ -4267,7 +5325,7 @@ function startRun() {
   hideScreens(); resetRun(); G.state = 'play'; hudBtns.hidden = false;
   duckBtn.hidden = !TOUCH; duckBtn.classList.remove('on');
   G.hintT = G.firstRun ? 5 : 2.2; G.firstRun = false;
-  if (MAR) { marStopAll(0); G.songCard0 = G.songCard; if (A.ctx && SNG.bufs[0]) SNG.cur = marPlay(0, A.ctx.currentTime + 0.06, 0); }
+  if (MAR) { marStopAll(0); G.songCard0 = G.songCard; if (A.ctx && SNG.bufs[0]) SNG.cur = marPlay(0, A.ctx.currentTime + 0.06, 0); finTestJump(); }
   else if (A.ctx && A.bufs[LV.id]) musicStart();
   last = performance.now();
 }
@@ -4285,7 +5343,7 @@ function resume() {
   last = performance.now();
 }
 function toMenu() {
-  musicStop(0.3); G.state = 'title'; hudBtns.hidden = true; duckBtn.hidden = true;
+  musicStop(0.3); finReset(); G.state = 'title'; hudBtns.hidden = true; duckBtn.hidden = true;
   if (A.ctx && A.ctx.state === 'suspended') A.ctx.resume().catch(() => {});
   G.obs = []; G.ostrich = null; G.T = 0; G.lag = 0.8; G.swampX = 1e12; G.camY = 0; pl.ride = 0; pl.fallT = 0; pl.y = 0; pl.onGround = true;
   resetManda(); resetTrain();
