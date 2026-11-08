@@ -3010,7 +3010,7 @@ function beatAfter(t) {
   return loop * D + bt;
 }
 function resetManda() {
-  Object.assign(M, { mode: TRAIN ? 'ride' : 'run', y: 0, vy: 0, vx: 0, duckT: 0, duck: 0, fire: TRAIN ? 0 : 1, turn: TRAIN, leapT: 0, steamT: 0,
+  Object.assign(M, { push: 0, mode: TRAIN ? 'ride' : 'run', y: 0, vy: 0, vx: 0, duckT: 0, duck: 0, fire: TRAIN ? 0 : 1, turn: TRAIN, leapT: 0, steamT: 0,
     carry: null, throwT: 0, sc: TS * M_ON, splashed: false });
 }
 function trainScreenX() { return lerp(VW * 0.58, VW - 70, G.lag); }
@@ -3344,7 +3344,14 @@ function drawParts(camX, top) {
 }
 
 /* ---------- Мандалупа: бег, прыжки, болото ---------- */
-function mScreenX() { return lerp(VW * 0.55, VW - 72, G.lag); }
+function mScreenX() { return Math.max(lerp(VW * 0.55, VW - 72, G.lag), Math.min(VW - 60, M.push || 0)); }
+// «Волга» и буйвол длиннее, чем обычный отрыв Мандалупы на узком экране: пока такой ускоритель в игре,
+// она держится впереди его носа (иначе машина с Жоруном её перекрывает)
+function mPushTarget() {
+  const O = G.ostrich;
+  if (!O || O.state === 'leave' || (O.kind !== 'volga' && O.kind !== 'buff')) return 0;
+  return PX + (O.kind === 'volga' ? VOL.L * (1 - VOL.rear) + 8 : (1008 - BUFS.zh[0]) * BUF.L / 1024) + 46;
+}
 // уровень 2: Мандалупа на задней площадке вагона, потом — в реке
 function bridesLeap() {
   Object.assign(M, { mode: 'fall', vx: TRN.v * 0.6 + 120, vy: 420, carry: null, throwT: 0, splashed: false, wx: TRN.car.x + 17 * TS, y: -FT_Y + 46 * TS });
@@ -3416,6 +3423,9 @@ function updateManda(dt) {
   }
   if (M.mode === 'run') {
     if (st === 'lose-seq' || (st === 'result' && !G.won)) G.lag = Math.min(1.4, G.lag + dt * 0.35);
+    const pt = mPushTarget(), base = lerp(VW * 0.55, VW - 72, G.lag);
+    if (pt > 0 && (M.push || 0) < base) M.push = base;
+    M.push = lerp(M.push || 0, pt, Math.min(1, dt * 2.6));
     M.wx = pl.x - PX + mScreenX();
     M.ph += (Math.max(G.speed, 210) * dt / 124) * Math.PI;
     for (const o of G.obs) {
